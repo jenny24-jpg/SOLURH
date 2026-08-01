@@ -1,7 +1,7 @@
 // routes/documentoEmpleado.js
 const express = require('express');
 const router = express.Router();
-const documentoEmpleadoController = require('../controllers/documentoEmpleadoController');
+const documentoEmpleadoController = require('../controllers/documentoempleadoController');
 const { verificarToken } = require('../middleware/auth');
 
 router.get('/', verificarToken, documentoEmpleadoController.listar);
