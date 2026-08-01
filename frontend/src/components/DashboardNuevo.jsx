@@ -129,19 +129,40 @@ export default function DashboardNuevo({ onSelect }) {
 
   const maxEmp = empleadosPorSupervisor.length ? empleadosPorSupervisor[0].cnt : 1;
 
+  // ── IDs de empleados activos (para filtrar asistencias/horas extra) ──
+  const empleadosActivosIds = useMemo(() => {
+    return new Set(
+      (Array.isArray(empleados) ? empleados : [])
+        .filter((e) => get(e, 'estado') === 'ACTIVO')
+        .map((e) => String(get(e, 'id')))
+    );
+  }, [empleados]);
+
+  const asistenciasActivas = useMemo(() => {
+    return (Array.isArray(asistencias) ? asistencias : []).filter((a) =>
+      empleadosActivosIds.has(String(get(a, 'empleado_id')))
+    );
+  }, [asistencias, empleadosActivosIds]);
+
+  const horasExtrasActivas = useMemo(() => {
+    return (Array.isArray(horasExtras) ? horasExtras : []).filter((h) =>
+      empleadosActivosIds.has(String(get(h, 'empleado_id')))
+    );
+  }, [horasExtras, empleadosActivosIds]);
+
   // ── Asistencias recientes ─────────────────────────────────
   const asistenciasRecientes = useMemo(() => {
-    return [...(Array.isArray(asistencias) ? asistencias : [])]
+    return [...asistenciasActivas]
       .sort((a, b) => new Date(get(b, 'fecha') || 0) - new Date(get(a, 'fecha') || 0))
       .slice(0, 3);
-  }, [asistencias]);
+  }, [asistenciasActivas]);
 
   // ── Horas extras recientes ────────────────────────────────
   const horasExtrasRecientes = useMemo(() => {
-    return [...(Array.isArray(horasExtras) ? horasExtras : [])]
+    return [...horasExtrasActivas]
       .sort((a, b) => new Date(get(b, 'fecha') || 0) - new Date(get(a, 'fecha') || 0))
       .slice(0, 3);
-  }, [horasExtras]);
+  }, [horasExtrasActivas]);
 
   // ── Colaboradores por Cliente ──────────────────────────────
   const empleadosPorCliente = useMemo(() => {
@@ -263,8 +284,8 @@ export default function DashboardNuevo({ onSelect }) {
 
           <div className={s.kpiInfo}>
             <p className={s.kpiLabel}>Asistencias recientes</p>
-            <p className={s.kpiVal} style={{ color: '#4CAF50' }}>
-              {loading ? <span className={s.kpiSkeleton} /> : asistenciasRecientes.length}
+            <p className={s.kpiVal} style={{ color: '#1b3d9c' }}>
+              {loading ? <span className={s.kpiSkeleton} /> : asistenciasActivas.length}
             </p>
           </div>
 
@@ -354,7 +375,7 @@ export default function DashboardNuevo({ onSelect }) {
           <div className={s.kpiInfo}>
             <p className={s.kpiLabel}>Horas extras</p>
             <p className={s.kpiVal} style={{ color: '#9C27B0' }}>
-              {loading ? <span className={s.kpiSkeleton} /> : horasExtras.length}
+              {loading ? <span className={s.kpiSkeleton} /> : horasExtrasActivas.length}
             </p>
           </div>
 
@@ -453,8 +474,8 @@ export default function DashboardNuevo({ onSelect }) {
             { label: 'Empleados', val: loading ? '…' : empleados.length, color: '#2563EB', bg: '#DBEAFE', icon: 'groups' },
             { label: 'Clientes', val: loading ? '…' : clientes.length, color: '#EA580C', bg: '#FFEDD5', icon: 'business' },
             { label: 'Supervisores', val: loading ? '…' : supervisores.length, color: '#7C3AED', bg: '#EDE9FE', icon: 'supervisor_account' },
-            { label: 'Asistencias', val: loading ? '…' : asistencias.length, color: '#16A34A', bg: '#DCFCE7', icon: 'fact_check' },
-            { label: 'Horas Extras', val: loading ? '…' : horasExtras.length, color: '#DC2626', bg: '#FEE2E2', icon: 'schedule' },
+            { label: 'Asistencias', val: loading ? '…' : asistenciasActivas.length, color: '#16A34A', bg: '#DCFCE7', icon: 'fact_check' },
+            { label: 'Horas Extras', val: loading ? '…' : horasExtrasActivas.length, color: '#DC2626', bg: '#FEE2E2', icon: 'schedule' },
           ].map(({ label, val, color, bg, icon }) => (
             <div key={label} style={{ background: bg, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
               <span className="material-icons" style={{ color, fontSize: 26, marginBottom: 4 }}>{icon}</span>
