@@ -7,8 +7,10 @@ const AuthCtx = createContext(null);
 // ── Helper fetch con token automatico ────────────────────
 export async function apiFetch(url, options = {}) {
   const token = sessionStorage.getItem('ga_token');
+  const isFormData = options.body instanceof FormData;
+
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
@@ -71,7 +73,7 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API}/usuarios/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ usuario: username, password }),
       });
 
       // Manejar rate limiting
@@ -91,21 +93,19 @@ export function AuthProvider({ children }) {
 
       if (data.token) sessionStorage.setItem('ga_token', data.token);
 
-      const usuarioBase = data.data;
-      const id = usuarioBase.ID_USUARIO ?? usuarioBase.id_usuario;
-      let usuarioCompleto = usuarioBase;
-      if (id) {
-        try {
-          const r2 = await apiFetch(`${API}/usuarios/${id}`);
-          const d2 = await r2.json();
-          if (d2.ok && d2.data) usuarioCompleto = d2.data;
-        } catch (_) {}
-      }
+      const usuarioBase = data.usuario ?? data.data ?? {};
+      const usuarioCompleto = {
+        ...usuarioBase,
+        ID_USUARIO: usuarioBase.id ?? usuarioBase.ID_USUARIO ?? usuarioBase.id_usuario,
+        USERNAME:   usuarioBase.usuario ?? usuarioBase.USERNAME ?? usuarioBase.username,
+        NOMBRES:    usuarioBase.nombre_completo ?? usuarioBase.NOMBRES ?? usuarioBase.nombres,
+        ROL_ID:     usuarioBase.rol_id ?? usuarioBase.ROL_ID,
+        ESTADO:     usuarioBase.estado ?? usuarioBase.ESTADO ?? 'ACTIVO',
+      };
 
       setUsuario(usuarioCompleto);
       try { sessionStorage.setItem('ga_usuario', JSON.stringify(usuarioCompleto)); } catch {}
       return { ok: true };
-
     } catch (err) {
       return { ok: false, mensaje: err.message || 'Error de conexion con el servidor' };
     } finally {

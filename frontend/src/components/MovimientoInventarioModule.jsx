@@ -5,9 +5,9 @@ import { API, apiFetch } from '../context/AuthContext';
 const API_BASE = API;
 
 const C = {
-  verdeProfundo:  '#1B4D2A',
-  verdeMedio:     '#2D7A3E',
-  verdeSalvia:    '#4CB968',
+  verdeProfundo:  '#133f83',
+  verdeMedio:     '#2b0b81',
+  verdeSalvia:    '#11085a',
   verdeMenta:     '#E8F5E9',
   tierraCalida:   '#8B6F47',
   oroForestal:    '#D4A853',

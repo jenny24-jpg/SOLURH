@@ -6,7 +6,11 @@ const API_BASE =
 function GenericCrudModule({ title, endpoint, fields }) {
   const initialForm = useMemo(() => {
     return fields.reduce((acc, field) => {
-      acc[field.name] = field.defaultValue ?? "";
+      if (field.type === "multiselect") {
+        acc[field.name] = field.defaultValue ?? [];
+      } else {
+        acc[field.name] = field.defaultValue ?? "";
+      }
       return acc;
     }, {});
   }, [fields]);
@@ -150,6 +154,23 @@ function GenericCrudModule({ title, endpoint, fields }) {
     }));
   };
 
+  // ── Maneja los checkboxes del campo tipo "multiselect" ──
+  const handleMultiSelectChange = (fieldName, optionValue, checked) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
+      const updated = checked
+        ? [...current, optionValue]
+        : current.filter((v) => v !== optionValue);
+
+      return { ...prev, [fieldName]: updated };
+    });
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: ""
+    }));
+  };
+
   const clearForm = () => {
     setForm(initialForm);
     setEditId(null);
@@ -165,7 +186,9 @@ function GenericCrudModule({ title, endpoint, fields }) {
 
       if (field.required) {
         const empty =
-          value === "" || value === null || value === undefined;
+          field.type === "multiselect"
+            ? !Array.isArray(value) || value.length === 0
+            : value === "" || value === null || value === undefined;
 
         if (empty) {
           newErrors[field.name] = `${field.label} es obligatorio`;
@@ -195,10 +218,13 @@ function GenericCrudModule({ title, endpoint, fields }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Campos normales que sí se guardan directo en la tabla del propio módulo
   const normalizePayload = () => {
     const payload = {};
 
     fields.forEach((field) => {
+      if (field.type === "multiselect") return; // este se maneja en un request aparte
+
       let value = form[field.name];
 
       if (field.type === "number") {
@@ -223,6 +249,30 @@ function GenericCrudModule({ title, endpoint, fields }) {
       Object.keys(item).find((key) => normalizeKey(key).includes("id")) ||
       null
     );
+  };
+
+  // ── Envía por separado los campos "multiselect" a su endpoint de relación ──
+  const submitRelations = async (recordId) => {
+    const multiFields = fields.filter((field) => field.type === "multiselect");
+
+    for (const field of multiFields) {
+      if (!field.relationEndpoint) continue;
+
+      const url = `${API_BASE}${field.relationEndpoint.replace("{id}", recordId)}`;
+      const selectedIds = Array.isArray(form[field.name]) ? form[field.name] : [];
+
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientes_ids: selectedIds })
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.message || json.mensaje || `Error al asignar ${field.label}`);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -252,6 +302,14 @@ function GenericCrudModule({ title, endpoint, fields }) {
         throw new Error(json.message || json.mensaje || "Error al guardar");
       }
 
+      // El id del registro: si es edición ya lo teníamos (editId),
+      // si es uno nuevo, viene en json.data.id (gracias al cambio en el backend)
+      const recordId = editId || json.data?.id;
+
+      if (recordId) {
+        await submitRelations(recordId);
+      }
+
       showMessage(
         editId
           ? "Registro actualizado correctamente."
@@ -265,16 +323,49 @@ function GenericCrudModule({ title, endpoint, fields }) {
     }
   };
 
-  const handleEdit = (item) => {
+  // ── Al editar, si hay campos multiselect, trae los valores ya asignados ──
+  const loadRelationValues = async (item, idKey) => {
+    const multiFields = fields.filter((field) => field.type === "multiselect");
+    if (multiFields.length === 0) return {};
+
+    const recordId = item[idKey];
+    const result = {};
+
+    for (const field of multiFields) {
+      if (!field.optionsEndpoint) continue;
+
+      try {
+        const res = await fetch(`${API_BASE}${field.optionsEndpoint}`);
+        const json = await res.json();
+        const allOptions = json.data || json || [];
+
+        // Filtra las opciones (ej. clientes) que ya tienen asignado este id
+        const assigned = allOptions
+          .filter((opt) => String(opt.id_supervisor) === String(recordId))
+          .map((opt) => getOptionValue(opt, field));
+
+        result[field.name] = assigned;
+      } catch {
+        result[field.name] = [];
+      }
+    }
+
+    return result;
+  };
+
+  const handleEdit = async (item) => {
     const updatedForm = {};
 
     fields.forEach((field) => {
+      if (field.type === "multiselect") return; // se llena aparte, abajo
       updatedForm[field.name] = getFieldValueFromItem(item, field.name) ?? "";
     });
 
     const idKey = getIdKey(item);
+    const relationValues = await loadRelationValues(item, idKey);
+
     setEditId(idKey ? item[idKey] : null);
-    setForm(updatedForm);
+    setForm({ ...updatedForm, ...relationValues });
     setErrors({});
     clearAlerts();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -369,6 +460,52 @@ function GenericCrudModule({ title, endpoint, fields }) {
       value: form[field.name] ?? "",
       onChange: handleChange
     };
+
+    if (field.type === "multiselect") {
+      const options = getOptionsForField(field);
+      const selected = Array.isArray(form[field.name]) ? form[field.name] : [];
+
+      return (
+        <div
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: 8,
+            padding: 10,
+            maxHeight: 180,
+            overflowY: "auto"
+          }}
+        >
+          {options.length === 0 && <small>No hay opciones disponibles.</small>}
+          {options.map((option, index) => {
+            const value = getOptionValue(option, field);
+            const label = getOptionLabel(option, field);
+            const checked = selected.includes(value);
+
+            return (
+              <label
+                key={`${field.name}-${index}-${value}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 6,
+                  fontWeight: 400
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) =>
+                    handleMultiSelectChange(field.name, value, e.target.checked)
+                  }
+                />
+                {label}
+              </label>
+            );
+          })}
+        </div>
+      );
+    }
 
     if (field.type === "select") {
       const options = getOptionsForField(field);

@@ -1,156 +1,102 @@
+import DashboardNuevo from "./components/DashboardNuevo";
 import React, { useMemo, useState } from "react";
 import "./App.css";
 import GenericCrudModule from "./components/GenericCrudModule";
-import MovimientoInventarioModule from "./components/MovimientoInventarioModule";
-import MapaPlanoModule from "./components/MapaPlanoModule";
 
 const MENU_ITEMS = [
-  { key: "tipos-variedad", label: "Tipos de Variedad de Árbol" },
-  { key: "tipos-fertilizante", label: "Tipos de Fertilizante" },
-  { key: "tipos-tratamiento", label: "Tipos de Tratamiento" },
-  { key: "estados-arbol", label: "Estados del Árbol" },
-  { key: "fincas", label: "Fincas" },
-  { key: "sectores", label: "Sectores" },
-  { key: "plagas-enfermedades", label: "Plagas y Enfermedades" },
-  { key: "arboles", label: "Árboles" },
-  { key: "historial-estados", label: "Historial de Estados" },
-  { key: "registros-plaga", label: "Registros de Plaga" },
-  { key: "registros-tratamiento", label: "Registros de Tratamiento" },
-  { key: "resiembras", label: "Resiembras" },
-  { key: "movimiento-inventario", label: "Movimiento Inventario" },
-  { key: "mapa-plano", label: "Mapa Agrícola" }
+  { key: "empleados", label: "Empleados" },
+  { key: "supervisores", label: "Supervisores" },
+  { key: "asistencias", label: "Asistencias" },
+  { key: "horas-extras", label: "Horas Extra" },
+  { key: "documentos-empleado", label: "Documentos de Empleado" },
+  { key: "historial-empleado", label: "Historial de Empleado" },
+  { key: "clientes", label: "Clientes" },
+  { key: "usuarios", label: "Usuarios" },
 ];
 
 const MODULES_CONFIG = {
-  "tipos-variedad": {
-    title: "Tipos de Variedad de Árbol",
-    endpoint: "/tipos-variedad",
+  empleados: {
+    title: "Empleados",
+    endpoint: "/empleado",
     fields: [
+      { name: "nombre_completo", label: "Nombre completo", type: "text", required: true },
+      { name: "dpi", label: "DPI", type: "text", required: true },
+      { name: "telefono", label: "Teléfono", type: "text" },
+      { name: "correo", label: "Correo", type: "text" },
+      { name: "fecha_ingreso", label: "Fecha de ingreso", type: "date", required: true },
+      { name: "puesto", label: "Puesto", type: "text" },
       {
-        name: "nombre_arbol",
-        label: "Nombre del árbol",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "tipo_uso",
-        label: "Tipo de uso",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "tipos-fertilizante": {
-    title: "Tipos de Fertilizante",
-    endpoint: "/tipo-fertilizante",
-    fields: [
-      {
-        name: "nombre_fertilizante",
-        label: "Nombre del fertilizante",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "tipo_fertilizante",
-        label: "Tipo de fertilizante",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "nutrientes_principales",
-        label: "Nutrientes principales",
-        type: "textarea",
-        required: true,
-      },
-      {
-        name: "metodo_aplicacion",
-        label: "Método de aplicación",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "frecuencia",
-        label: "Frecuencia",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "tipos-tratamiento": {
-    title: "Tipos de Tratamiento",
-    endpoint: "/tipo-tratamiento",
-    fields: [
-      {
-        name: "nombre_tratamiento",
-        label: "Nombre del tratamiento",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "categoria",
-        label: "Categoría",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "metodo_aplicacion",
-        label: "Método de aplicación",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "frecuencia",
-        label: "Frecuencia",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "estados-arbol": {
-    title: "Estados del Árbol",
-    endpoint: "/estado-arbol",
-    fields: [
-      {
-        name: "nombre_estado",
-        label: "Nombre del estado",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "orden_ciclo",
-        label: "Orden del ciclo",
-        type: "number",
-        required: true,
-        validate: (value) => {
-          if (value !== "" && Number(value) <= 0) {
-            return "Debe ser mayor que 0";
-          }
-          return "";
-        },
-      },
-      {
-        name: "es_productivo",
-        label: "¿Es productivo?",
+        name: "estado",
+        label: "Estado",
         type: "select",
         required: true,
+        options: [
+          { id: "ACTIVO", nombre: "Activo" },
+          { id: "INACTIVO", nombre: "Inactivo" },
+        ],
+        optionValue: "id",
+        optionLabel: "nombre",
+      },
+      { name: "id_supervisor", label: "Supervisor", type: "select", optionsEndpoint: "/supervisor", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "descripcion", label: "Observaciones", type: "textarea" },
+    ],
+  },
+
+  supervisores: {
+  title: "Supervisores",
+  endpoint: "/supervisor",
+  fields: [
+    { name: "nombre_completo", label: "Nombre completo", type: "text", required: true },
+    { name: "telefono", label: "Teléfono", type: "text" },
+    { name: "correo", label: "Correo", type: "text" },
+    { name: "area_a_cargo", label: "Área a cargo", type: "text" },
+    {
+      name: "clientes_ids",
+      label: "Clientes a cargo",
+      type: "multiselect",
+      optionsEndpoint: "/cliente",
+      optionValue: "id",
+      optionLabel: "nombre",
+      relationEndpoint: "/supervisor/{id}/clientes",
+    },
+  ],
+},
+  asistencias: {
+    title: "Asistencias",
+    endpoint: "/asistencia",
+    fields: [
+      { name: "id_empleado", label: "Empleado", type: "select", required: true, optionsEndpoint: "/empleado", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "fecha", label: "Fecha", type: "date", required: true },
+      { name: "hora_entrada", label: "Hora de entrada", type: "text" },
+      { name: "hora_salida", label: "Hora de salida", type: "text" },
+      {
+        name: "estado",
+        label: "Estado",
+        type: "select",
+        options: [
+          { id: "PRESENTE", nombre: "Presente" },
+          { id: "TARDE", nombre: "Tarde" },
+          { id: "AUSENTE", nombre: "Ausente" },
+        ],
+        optionValue: "id",
+        optionLabel: "nombre",
+      },
+      { name: "observaciones", label: "Observaciones", type: "textarea" },
+    ],
+  },
+
+  "horas-extras": {
+    title: "Horas Extra",
+    endpoint: "/horas-extra",
+    fields: [
+      { name: "id_empleado", label: "Empleado", type: "select", required: true, optionsEndpoint: "/empleado", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "fecha", label: "Fecha", type: "date", required: true },
+      { name: "horas", label: "Cantidad de horas", type: "number", required: true },
+      { name: "motivo", label: "Motivo", type: "textarea" },
+      {
+        name: "aprobado",
+        label: "¿Aprobado?",
+        type: "select",
         options: [
           { id: "S", nombre: "Sí" },
           { id: "N", nombre: "No" },
@@ -158,372 +104,45 @@ const MODULES_CONFIG = {
         optionValue: "id",
         optionLabel: "nombre",
       },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
     ],
   },
 
-  fincas: {
-    title: "Fincas",
-    endpoint: "/finca",
+  "documentos-empleado": {
+    title: "Documentos de Empleado",
+    endpoint: "/documento-empleado",
     fields: [
-      {
-        name: "nombre_finca",
-        label: "Nombre de la finca",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "ubicacion",
-        label: "Ubicación",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "area_hectareas",
-        label: "Área (hectáreas)",
-        type: "number",
-        required: true,
-        validate: (value) => {
-          if (value !== "" && Number(value) <= 0) {
-            return "Debe ser mayor que 0";
-          }
-          return "";
-        },
-      },
-      {
-        name: "propietario",
-        label: "Propietario",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "telefono_contacto",
-        label: "Teléfono de contacto",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-
-      /* NUEVOS CAMPOS DEL MAPA */
-      {
-        name: "ancho",
-        label: "Ancho del terreno (metros)",
-        type: "number",
-        required: false,
-      },
-      {
-        name: "largo",
-        label: "Largo del terreno (metros)",
-        type: "number",
-        required: false,
-      },
+      { name: "id_empleado", label: "Empleado", type: "select", required: true, optionsEndpoint: "/empleado", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "tipo_documento", label: "Tipo de documento", type: "text", required: true },
+      { name: "nombre_archivo", label: "Nombre del archivo", type: "text" },
+      { name: "fecha_subida", label: "Fecha de subida", type: "date" },
     ],
   },
 
-  sectores: {
-    title: "Sectores",
-    endpoint: "/sector",
+  "historial-empleado": {
+    title: "Historial de Empleado",
+    endpoint: "/historial-empleado",
     fields: [
-      {
-        name: "id_finca",
-        label: "Finca",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/finca",
-        optionValue: "ID_FINCA",
-        optionLabel: "NOMBRE_FINCA",
-      },
-      {
-        name: "nombre_sector",
-        label: "Nombre del sector",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "area_hectareas",
-        label: "Área hectáreas",
-        type: "number",
-      },
-      {
-        name: "numero_surcos",
-        label: "Número de surcos",
-        type: "number",
-        validate: (value) => {
-          if (value !== "" && Number(value) < 0) {
-            return "No puede ser negativo";
-          }
-          return "";
-        },
-      },
-      {
-        name: "posiciones_por_surco",
-        label: "Posiciones por surco",
-        type: "number",
-        validate: (value) => {
-          if (value !== "" && Number(value) < 0) {
-            return "No puede ser negativo";
-          }
-          return "";
-        },
-      },
-      {
-        name: "tipo_cultivo",
-        label: "Tipo de cultivo",
-        type: "select",
-        options: [
-          { id: "CACAO", nombre: "Cacao" },
-          { id: "CAFE", nombre: "Café" },
-          { id: "AGUACATE", nombre: "Aguacate" },
-          { id: "OTRO", nombre: "Otro" },
-        ],
-        optionValue: "id",
-        optionLabel: "nombre",
-      },
+      { name: "id_empleado", label: "Empleado", type: "select", required: true, optionsEndpoint: "/empleado", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "tipo_cambio", label: "Tipo de cambio", type: "text", required: true },
+      { name: "descripcion", label: "Descripción del cambio", type: "textarea", required: true },
+      { name: "fecha_cambio", label: "Fecha", type: "date", required: true },
     ],
   },
 
-  "plagas-enfermedades": {
-    title: "Plagas y Enfermedades",
-    endpoint: "/plaga-enfermedad",
-    fields: [
-      {
-        name: "nombre_plaga",
-        label: "Nombre de la plaga o enfermedad",
-        type: "text",
-        required: true,
-      },
-      {
-        name: "tipo_plaga",
-        label: "Tipo",
-        type: "select",
-        required: true,
-        options: [
-          { id: "PLAGA", nombre: "Plaga" },
-          { id: "ENFERMEDAD", nombre: "Enfermedad" },
-        ],
-        optionValue: "id",
-        optionLabel: "nombre",
-      },
-      {
-        name: "nivel_riesgo",
-        label: "Nivel de riesgo",
-        type: "select",
-        required: true,
-        options: [
-          { id: "BAJO", nombre: "Bajo" },
-          { id: "MEDIO", nombre: "Medio" },
-          { id: "ALTO", nombre: "Alto" },
-        ],
-        optionValue: "id",
-        optionLabel: "nombre",
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-    ],
-  },
-
-  arboles: {
-    title: "Árboles",
-    endpoint: "/arbol",
-    fields: [
-      {
-        name: "id_sector",
-        label: "Sector",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/sector",
-        optionValue: "ID_SECTOR",
-        optionLabel: "NOMBRE_SECTOR",
-      },
-      {
-        name: "id_tipo_variedad_arbol",
-        label: "Tipo de variedad",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/tipos-variedad",
-        optionValue: "ID_TIPO_VARIEDAD_ARBOL",
-        optionLabel: "NOMBRE_ARBOL",
-      },
-      {
-        name: "id_estado",
-        label: "Estado",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/estado-arbol",
-        optionValue: "ID_ESTADO",
-        optionLabel: "NOMBRE_ESTADO",
-      },
-      {
-        name: "numero_surco",
-        label: "Número de surco",
-        type: "number",
-        required: true,
-      },
-      {
-        name: "descripcion",
-        label: "Descripción",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "historial-estados": {
-    title: "Historial de Estados",
-    endpoint: "/historial-estado",
-    fields: [
-      {
-        name: "id_arbol",
-        label: "Árbol",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/arbol",
-        optionValue: "ID_ARBOL",
-        optionLabel: "NOMBRE_ARBOL",
-      },
-      {
-        name: "id_estado_nuevo",
-        label: "Nuevo estado",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/estado-arbol",
-        optionValue: "ID_ESTADO",
-        optionLabel: "NOMBRE_ESTADO",
-      },
-      {
-        name: "observaciones",
-        label: "Observaciones",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "registros-plaga": {
-    title: "Registros de Plaga",
-    endpoint: "/registro-plaga",
-    fields: [
-      {
-        name: "id_arbol",
-        label: "Árbol",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/arbol",
-        optionValue: "ID_ARBOL",
-        optionLabel: "NOMBRE_ARBOL",
-      },
-      {
-        name: "id_plaga",
-        label: "Plaga / Enfermedad",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/plaga-enfermedad",
-        optionValue: "ID_PLAGA",
-        optionLabel: "NOMBRE_PLAGA",
-      },
-      {
-        name: "fecha_deteccion",
-        label: "Fecha de detección",
-        type: "date",
-        required: true,
-      },
-      {
-        name: "fecha_resolucion",
-        label: "Fecha de resolución",
-        type: "date",
-      },
-      {
-        name: "observaciones",
-        label: "Observaciones",
-        type: "textarea",
-      },
-    ],
-  },
-
-  "registros-tratamiento": {
-    title: "Registros de Tratamiento",
-    endpoint: "/registro-tratamiento",
-    fields: [
-      {
-        name: "id_arbol",
-        label: "Árbol",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/arbol",
-        optionValue: "ID_ARBOL",
-        optionLabel: "NOMBRE_ARBOL",
-      },
-      {
-        name: "id_tipo_tratamiento",
-        label: "Tipo de tratamiento",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/tipo-tratamiento",
-        optionValue: "ID_TIPO_TRATAMIENTO",
-        optionLabel: "NOMBRE_TRATAMIENTO",
-      },
-      {
-        name: "id_fertilizante",
-        label: "Tipo de fertilizante",
-        type: "select",
-        optionsEndpoint: "/tipo-fertilizante",
-        optionValue: "ID_FERTILIZANTE",
-        optionLabel: "NOMBRE_FERTILIZANTE",
-      },
-      {
-        name: "fecha_aplicacion",
-        label: "Fecha de aplicación",
-        type: "date",
-        required: true,
-      },
-      {
-        name: "observaciones",
-        label: "Observaciones",
-        type: "textarea",
-      },
-    ],
-  },
-
-  resiembras: {
-    title: "Resiembras",
-    endpoint: "/resiembra",
-    fields: [
-      {
-        name: "id_arbol_nuevo",
-        label: "Árbol",
-        type: "select",
-        required: true,
-        optionsEndpoint: "/arbol",
-        optionValue: "ID_ARBOL",
-        optionLabel: "NOMBRE_ARBOL",
-      },
-      {
-        name: "fecha_resiembra",
-        label: "Fecha de resiembra",
-        type: "date",
-        required: true,
-      },
-      {
-        name: "motivo",
-        label: "Motivo",
-        type: "textarea",
-        required: true,
-      },
-    ],
-  },
+  clientes: {
+  title: "Clientes",
+  endpoint: "/cliente",
+  fields: [
+    { name: "nombre", label: "Nombre", type: "text", required: true },
+    { name: "telefono", label: "Teléfono", type: "text" },
+    { name: "correo", label: "Correo", type: "text" },
+    { name: "id_supervisor", label: "Supervisor", type: "select", optionsEndpoint: "/supervisor", optionValue: "id", optionLabel: "nombre_completo" }, // 👈 NUEVO
+  ],
+},
 };
 
 function App() {
-  const [activeModule, setActiveModule] = useState("tipos-variedad");
+  const [activeModule, setActiveModule] = useState("dashboard");
 
   const activeConfig = useMemo(
     () => MODULES_CONFIG[activeModule],
@@ -531,12 +150,8 @@ function App() {
   );
 
   const renderModule = () => {
-    if (activeModule === "movimiento-inventario") {
-      return <MovimientoInventarioModule />;
-    }
-
-    if (activeModule === "mapa-plano") {
-      return <MapaPlanoModule />;
+    if (activeModule === "dashboard") {
+      return <DashboardNuevo onSelect={setActiveModule} />;
     }
 
     if (!activeConfig) {
@@ -563,21 +178,26 @@ function App() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="brand-card">
-          <div className="brand-icon">🌳</div>
+          <div className="brand-icon">👥</div>
           <div>
-            <h2>Gestión de Árboles</h2>
-            <p>CRUD colaborativo</p>
+            <h2>SoluRH</h2>
+            <p>Gestión de Personal</p>
           </div>
         </div>
+
+        <button
+          className={`menu-item ${activeModule === "dashboard" ? "active" : ""}`}
+          onClick={() => setActiveModule("dashboard")}
+        >
+          Dashboard
+        </button>
 
         <nav className="menu">
           {MENU_ITEMS.map((item) => (
             <button
               key={item.key}
               type="button"
-              className={`menu-item ${
-                activeModule === item.key ? "active" : ""
-              }`}
+              className={`menu-item ${activeModule === item.key ? "active" : ""}`}
               onClick={() => setActiveModule(item.key)}
             >
               {item.label}

@@ -4,9 +4,9 @@ export default function Sidebar({ resources, activeKey, onSelect }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-icon">🌳</div>
+        <div className="brand-icon">👥</div>
         <div>
-          <h1>Gestión de Árboles</h1>
+          <h1>Gestión de Personal</h1>
           <p>CRUD colaborativo</p>
         </div>
       </div>

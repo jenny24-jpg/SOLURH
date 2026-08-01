@@ -1,0 +1,202 @@
+// ============================================================
+// controllers/empleadoController.js
+// ============================================================
+const { getConnection, closeConnection } = require('../config/db');
+const { registrar: registrarAuditoria } = require('./auditoriaController');
+
+function usuarioAuditoria(req) {
+  return { usuarioId: req.usuario?.id || null, usuarioNombre: req.usuario?.username || 'Sistema' };
+}
+
+// Trae también el nombre del cliente y del supervisor, para no tener
+// que hacer consultas extra desde el frontend.
+const SELECT_BASE = `
+  SELECT e.*, c.nombre AS nombre_cliente, s.nombre AS nombre_supervisor
+  FROM empleados e
+  LEFT JOIN clientes c ON c.id = e.cliente_id
+  LEFT JOIN supervisores s ON s.id = e.supervisor_id
+`;
+
+const listar = async (req, res) => {
+  let conn;
+  try {
+    conn = await getConnection();
+    const result = await conn.query(`${SELECT_BASE} WHERE e.estado = 'ACTIVO' ORDER BY e.apellidos, e.nombres`);
+    res.status(200).json({ ok: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
+  } finally {
+    await closeConnection(conn);
+  }
+};
+
+const obtenerPorId = async (req, res) => {
+  const { id_empleado } = req.params;
+  let conn;
+  try {
+    conn = await getConnection();
+    const result = await conn.query(`${SELECT_BASE} WHERE e.id = $1`, [Number(id_empleado)]);
+    if (result.rows.length === 0) return res.status(404).json({ ok: false, mensaje: 'Empleado no encontrado.' });
+    res.status(200).json({ ok: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
+  } finally {
+    await closeConnection(conn);
+  }
+};
+
+const insertar = async (req, res) => {
+  const {
+    nombres, apellidos, dpi, nit,
+    cliente_id, supervisor_id, jornada,
+    fecha_ingreso, salario, observaciones, fotografia,
+  } = req.body;
+
+  if (!nombres || String(nombres).trim().length < 2) {
+    return res.status(400).json({ ok: false, mensaje: 'El nombre es requerido.' });
+  }
+  if (!apellidos || String(apellidos).trim().length < 2) {
+    return res.status(400).json({ ok: false, mensaje: 'El apellido es requerido.' });
+  }
+  if (!dpi) {
+    return res.status(400).json({ ok: false, mensaje: 'El DPI es requerido.' });
+  }
+  if (!cliente_id) {
+    return res.status(400).json({ ok: false, mensaje: 'El cliente es requerido.' });
+  }
+  if (!supervisor_id) {
+    return res.status(400).json({ ok: false, mensaje: 'El supervisor es requerido.' });
+  }
+  if (!jornada) {
+    return res.status(400).json({ ok: false, mensaje: 'La jornada es requerida.' });
+  }
+  if (!fecha_ingreso) {
+    return res.status(400).json({ ok: false, mensaje: 'La fecha de ingreso es requerida.' });
+  }
+
+  let conn;
+  try {
+    conn = await getConnection();
+    const result = await conn.query(
+      `INSERT INTO empleados
+        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, fecha_creacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVO',$10,$11, NOW())
+       RETURNING id`,
+      [
+        nombres.trim(),
+        apellidos.trim(),
+        dpi,
+        nit || null,
+        Number(cliente_id),
+        Number(supervisor_id),
+        jornada,
+        fecha_ingreso,
+        salario || null,
+        observaciones || null,
+        fotografia || null,
+      ]
+    );
+
+    await registrarAuditoria(conn, {
+      tabla: 'EMPLEADOS',
+      operacion: 'INSERT',
+      idRegistro: result.rows[0].id,
+      descripcion: `Nuevo empleado creado: ${nombres} ${apellidos}`,
+      ...usuarioAuditoria(req),
+    });
+
+    res.status(201).json({ ok: true, mensaje: 'Empleado creado correctamente.' });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'El DPI ya está registrado.' });
+    res.status(500).json({ ok: false, mensaje: err.message });
+  } finally {
+    await closeConnection(conn);
+  }
+};
+
+const actualizar = async (req, res) => {
+  const { id_empleado } = req.params;
+  const {
+    nombres, apellidos, dpi, nit,
+    cliente_id, supervisor_id, jornada,
+    fecha_ingreso, salario, estado, observaciones, fotografia,
+  } = req.body;
+
+  if (!nombres || String(nombres).trim().length < 2) {
+    return res.status(400).json({ ok: false, mensaje: 'El nombre es requerido.' });
+  }
+  if (!apellidos || String(apellidos).trim().length < 2) {
+    return res.status(400).json({ ok: false, mensaje: 'El apellido es requerido.' });
+  }
+
+  let conn;
+  try {
+    conn = await getConnection();
+    await conn.query(
+      `UPDATE empleados SET
+        nombres=$1, apellidos=$2, dpi=$3, nit=$4,
+        cliente_id=$5, supervisor_id=$6, jornada=$7,
+        fecha_ingreso=$8, salario=$9, estado=$10, observaciones=$11, fotografia=$12
+       WHERE id=$13`,
+      [
+        nombres.trim(),
+        apellidos.trim(),
+        dpi,
+        nit || null,
+        Number(cliente_id),
+        Number(supervisor_id),
+        jornada,
+        fecha_ingreso,
+        salario || null,
+        estado || 'ACTIVO',
+        observaciones || null,
+        fotografia || null,
+        Number(id_empleado),
+      ]
+    );
+
+    await registrarAuditoria(conn, {
+      tabla: 'EMPLEADOS',
+      operacion: 'UPDATE',
+      idRegistro: id_empleado,
+      descripcion: `Empleado ${id_empleado} actualizado`,
+      ...usuarioAuditoria(req),
+    });
+
+    res.status(200).json({ ok: true, mensaje: 'Empleado actualizado correctamente.' });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'El DPI ya está registrado.' });
+    res.status(500).json({ ok: false, mensaje: err.message });
+  } finally {
+    await closeConnection(conn);
+  }
+};
+
+const eliminar = async (req, res) => {
+  const { id_empleado } = req.params;
+  const { motivo_baja } = req.body;
+  let conn;
+  try {
+    conn = await getConnection();
+    await conn.query(
+      `UPDATE empleados SET estado = 'INACTIVO', fecha_baja = NOW(), motivo_baja = $1 WHERE id = $2`,
+      [motivo_baja || null, Number(id_empleado)]
+    );
+
+    await registrarAuditoria(conn, {
+      tabla: 'EMPLEADOS',
+      operacion: 'DELETE',
+      idRegistro: id_empleado,
+      descripcion: `Empleado ${id_empleado} dado de baja`,
+      ...usuarioAuditoria(req),
+    });
+
+    res.status(200).json({ ok: true, mensaje: 'Empleado dado de baja correctamente.' });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
+  } finally {
+    await closeConnection(conn);
+  }
+};
+
+module.exports = { listar, obtenerPorId, insertar, actualizar, eliminar };

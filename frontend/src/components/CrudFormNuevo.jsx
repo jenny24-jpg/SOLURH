@@ -37,8 +37,8 @@ export default function CrudFormNuevo({ config, editItem, editId, onClose, onSav
   const [fieldErrors, setFieldErrors] = useState({});
   const [remoteOptions, setRemoteOptions] = useState({});
   const [loadingOptions, setLoadingOptions] = useState({});
-
-
+  const [uploadingFile, setUploadingFile] = useState({});
+  const [fileNames, setFileNames] = useState({});
 
   // Colisión de posición
 
@@ -388,6 +388,35 @@ isSector
       seen.add(key);
       return true;
     });
+  };
+
+  const handleFileUpload = async (fieldName, file) => {
+    if (!file) return;
+
+    setUploadingFile(prev => ({ ...prev, [fieldName]: true }));
+    setFileNames(prev => ({ ...prev, [fieldName]: file.name }));
+
+    try {
+      const formData = new FormData();
+      formData.append('archivo', file);
+
+      const res = await apiFetch(`${API}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+
+      if (json.ok && json.url) {
+        set(fieldName, json.url);
+      } else {
+        setError(json.mensaje ?? 'Error al subir el archivo');
+      }
+    } catch {
+      setError('Error de conexión al subir el archivo');
+    } finally {
+      setUploadingFile(prev => ({ ...prev, [fieldName]: false }));
+    }
   };
 
   const set = (k, v) => {
@@ -1132,6 +1161,23 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                       onChange={val => set(field.name, val)}
                       placeholder="dd/mm/aaaa"
                     />
+                  </div>
+                ) : field.type === 'file' ? (
+                  <div>
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={e => handleFileUpload(field.name, e.target.files[0])}
+                      className={s.input}
+                    />
+                    {uploadingFile[field.name] && (
+                      <span className={s.hint}>Subiendo archivo...</span>
+                    )}
+                    {!uploadingFile[field.name] && form[field.name] && (
+                      <span className={s.hint}>
+                        ✅ Archivo listo: {fileNames[field.name] || 'archivo subido'}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <input

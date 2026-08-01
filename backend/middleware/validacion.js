@@ -21,7 +21,7 @@ const validar = (req, res, next) => {
 
 // ── LOGIN ─────────────────────────────────────────────────────
 const reglasLogin = [
-  body('username')
+  body('usuario')
     .trim()
     .notEmpty().withMessage('El usuario es requerido')
     .isLength({ max: 80 }).withMessage('El usuario no puede superar 80 caracteres'),

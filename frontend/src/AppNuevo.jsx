@@ -110,8 +110,8 @@ function MainLayout() {
                 <span className="material-icons">park</span>
               </div>
               <div className="mobileBrandText">
-                <span>Gestión Árboles</span>
-                <small>Panel agrícola</small>
+                <span>SoluRH</span>
+                <small>Panel de RRHH</small>
               </div>
             </div>
             <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
@@ -138,17 +138,14 @@ function MainLayout() {
 }
 
 // ── Permisos por rol ──────────────────────────────
-const SOLO_ADMIN = new Set(['gestion-usuarios']);
 const REQUIERE_ADMIN = new Set([
   'historial-cambios', 'reporte-historial-estados',
-  'tipos-variedad', 'tipos-fertilizante', 'tipos-tratamiento',
-  'estados-arbol', 'plagas-enfermedades',
+  'empleados', 'supervisores', 'historial-empleado',
 ]);
 
 function canAccess(key, rolId) {
   if (!key) return true;
   if (key === 'perfil') return true;
-  if (SOLO_ADMIN.has(key))     return rolId === 1;
   if (REQUIERE_ADMIN.has(key)) return rolId <= 2;
   return true;
 }
@@ -209,10 +206,10 @@ function AccesoDenegado({ onBack, rolId }) {
       <button
         onClick={onBack} type="button"
         style={{
-          background:'#16a34a', color:'#fff', padding:'12px 24px',
+          background:'#14168b', color:'#fff', padding:'12px 24px',
           borderRadius:12, fontWeight:700, fontSize:13, cursor:'pointer',
           display:'flex', alignItems:'center', gap:8,
-          boxShadow:'0 4px 14px rgba(22,163,74,0.35)'
+          boxShadow:'0 4px 14px rgba(90, 210, 240, 0.85)'
         }}
       >
         <span className="material-icons" style={{fontSize:18}}>arrow_back</span>

@@ -1,7 +1,6 @@
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useMemo } from 'react';
 
-
 import { API, apiFetch } from '../context/AuthContext';
 
 const C = {
@@ -38,29 +37,22 @@ function fmt(val) {
 }
 
 // ── Generador de PDF de historial ─────────────────────────────
-function generarPDFHistorial(datos, estadosMap, arbolesMap) {
+function generarPDFHistorial(datos) {
   const fecha = new Date().toLocaleDateString('es-GT', { year:'numeric', month:'long', day:'numeric' });
 
-  // Helper: nombre legible del árbol a partir del propio registro de historial,
-  // con respaldo en arbolesMap. Igual que el helper del componente.
-  const nombreArbol = (r) => {
-    const id       = get(r,'ID_ARBOL','id_arbol');
-    const variedad = get(r,'NOMBRE_ARBOL','nombre_arbol');
-    const surco    = get(r,'NUMERO_SURCO','numero_surco');
-    const posY     = get(r,'POSICION_Y','posicion_y');
-    const partes = [];
-    if (variedad) partes.push(variedad);
-    if (surco != null) partes.push(`Surco ${surco}`);
-    if (posY != null) partes.push(`Pos ${posY}`);
-    if (partes.length > 0) return partes.join(' · ');
-    return arbolesMap[id] || `Árbol #${id}`;
+  const nombreEmpleado = (r) => {
+    const nombres   = get(r,'nombres');
+    const apellidos = get(r,'apellidos');
+    const id        = get(r,'empleado_id');
+    if (nombres || apellidos) return `${nombres || ''} ${apellidos || ''}`.trim();
+    return `Empleado #${id}`;
   };
 
   // Estadísticas del top 5
   const conteos = {};
   datos.forEach(r => {
-    const arbol = nombreArbol(r);
-    conteos[arbol] = (conteos[arbol] || 0) + 1;
+    const emp = nombreEmpleado(r);
+    conteos[emp] = (conteos[emp] || 0) + 1;
   });
   const top5 = Object.entries(conteos)
     .sort((a,b) => b[1] - a[1])
@@ -99,33 +91,34 @@ function generarPDFHistorial(datos, estadosMap, arbolesMap) {
   </svg>`;
   const chartUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(chartSVG)}`;
 
-  // Finca más frecuente y estado más frecuente
-  const estConteos = {};
+  const campoConteos = {};
   datos.forEach(r => {
-    const est = estadosMap[get(r,'ID_ESTADO_NUEVO','id_estado_nuevo')] || '?';
-    estConteos[est] = (estConteos[est] || 0) + 1;
+    const campo = get(r,'campo_modificado') || '?';
+    campoConteos[campo] = (campoConteos[campo] || 0) + 1;
   });
-  const estadoTop = Object.entries(estConteos).sort((a,b)=>b[1]-a[1])[0];
-  const arbolTop  = top5[0];
+  const campoTop = Object.entries(campoConteos).sort((a,b)=>b[1]-a[1])[0];
+  const empleadoTop = top5[0];
 
   const filas = datos.map((r, idx) => {
-    const arbol    = nombreArbol(r);
-    const estAnt   = estadosMap[get(r,'ID_ESTADO_ANTERIOR','id_estado_anterior')] || '—';
-    const estNuevo = estadosMap[get(r,'ID_ESTADO_NUEVO','id_estado_nuevo')] || '—';
-    const fechaCam = fmt(get(r,'FECHA_CAMBIO','fecha_cambio'));
-    const obs      = get(r,'OBSERVACIONES','observaciones') || '—';
+    const emp      = nombreEmpleado(r);
+    const campo    = get(r,'campo_modificado') || '—';
+    const valAnt   = get(r,'valor_anterior') || '—';
+    const valNuevo = get(r,'valor_nuevo') || '—';
+    const fechaCam = fmt(get(r,'fecha'));
+    const modPor   = get(r,'usuario_nombre') || 'Sistema';
     return `<tr class="${idx%2===0?'':'alt'}">
       <td>${idx+1}</td>
-      <td><strong>${arbol}</strong></td>
-      <td>${estAnt}</td>
-      <td><span style="background:#E8F5E9;color:#1B4D2A;padding:2px 6px;border-radius:10px;font-size:8.5px;font-weight:700">${estNuevo}</span></td>
+      <td><strong>${emp}</strong></td>
+      <td>${campo}</td>
+      <td>${valAnt}</td>
+      <td><span style="background:#E8F5E9;color:#1B4D2A;padding:2px 6px;border-radius:10px;font-size:8.5px;font-weight:700">${valNuevo}</span></td>
       <td>${fechaCam}</td>
-      <td style="color:#8B6F47">${obs}</td>
+      <td style="color:#8B6F47">${modPor}</td>
     </tr>`;
   }).join('');
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>
-  <title>Historial de Estados — Gestión de Árboles</title>
+  <title>Historial de Cambios — SoluRH</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
@@ -160,10 +153,10 @@ function generarPDFHistorial(datos, estadosMap, arbolesMap) {
   </style></head><body>
   <div class="header">
     <div class="header-left">
-      <div class="h-icon">🌳</div>
+      <div class="h-icon">👥</div>
       <div>
-        <h1>Historial de Estados de Árboles</h1>
-        <div class="sub">Generado el ${fecha} · Sistema de Gestión de Árboles</div>
+        <h1>Historial de Cambios de Empleados</h1>
+        <div class="sub">Generado el ${fecha} · SoluRH</div>
       </div>
     </div>
     <div class="badge"><span>Total cambios</span><strong>${datos.length}</strong></div>
@@ -171,27 +164,27 @@ function generarPDFHistorial(datos, estadosMap, arbolesMap) {
   <div class="body">
     <div class="kpis">
       <div class="kpi"><div class="kpi-label">Total cambios</div><div class="kpi-val">${datos.length}</div></div>
-      <div class="kpi"><div class="kpi-label">Árboles únicos</div><div class="kpi-val">${Object.keys(conteos).length}</div></div>
-      <div class="kpi"><div class="kpi-label">Estado más frecuente</div><div class="kpi-val" style="font-size:12px">${estadoTop?.[0]||'—'}</div></div>
-      <div class="kpi"><div class="kpi-label">Árbol más activo</div><div class="kpi-val" style="font-size:11px">${arbolTop?.[0]?.slice(0,16)||'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Empleados únicos</div><div class="kpi-val">${Object.keys(conteos).length}</div></div>
+      <div class="kpi"><div class="kpi-label">Campo más modificado</div><div class="kpi-val" style="font-size:12px">${campoTop?.[0]||'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Empleado con más cambios</div><div class="kpi-val" style="font-size:11px">${empleadoTop?.[0]?.slice(0,16)||'—'}</div></div>
     </div>
     <div class="section">
-      <div class="sec-title">Top 5 árboles con más cambios de estado</div>
+      <div class="sec-title">Top 5 empleados con más cambios</div>
       <div class="chart-box">
-        <h3>Cantidad de cambios por árbol</h3>
+        <h3>Cantidad de cambios por empleado</h3>
         <img src="${chartUrl}" alt="Gráfico top 5"/>
       </div>
     </div>
     <div class="section">
       <div class="sec-title">Detalle completo del historial</div>
       <table>
-        <thead><tr><th>#</th><th>Árbol</th><th>Estado anterior</th><th>Estado nuevo</th><th>Fecha cambio</th><th>Observaciones</th></tr></thead>
+        <thead><tr><th>#</th><th>Empleado</th><th>Campo</th><th>Valor anterior</th><th>Valor nuevo</th><th>Fecha</th><th>Modificado por</th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
     </div>
   </div>
   <div class="footer">
-    <span>🌿 <strong>Gestión de Árboles</strong> — Reporte de historial de estados</span>
+    <span>👥 <strong>SoluRH</strong> — Reporte de historial de cambios</span>
     <span>${datos.length} cambios registrados · ${fecha}</span>
   </div>
   </body></html>`;
@@ -209,28 +202,20 @@ export default function ReporteHistorialEstados({ onBack }) {
   const { isDark } = useTheme();
 
   const [historial, setHistorial] = useState([]);
-  const [estados,   setEstados]   = useState([]);
-  const [arboles,   setArboles]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
 
-  const [filtroArbol,  setFiltroArbol]  = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
-  const [search,       setSearch]       = useState('');
-  const [fechaDesde,   setFechaDesde]   = useState('');
-  const [fechaHasta,   setFechaHasta]   = useState('');
+  const [filtroEmpleado, setFiltroEmpleado] = useState('');
+  const [filtroCampo,    setFiltroCampo]    = useState('');
+  const [search,         setSearch]         = useState('');
+  const [fechaDesde,     setFechaDesde]     = useState('');
+  const [fechaHasta,     setFechaHasta]     = useState('');
 
   const cargar = async () => {
     setLoading(true); setError('');
     try {
-      const [rH, rE, rA] = await Promise.all([
-        apiFetch(`${API}/historial-estado`).then(r => r.json()),
-        apiFetch(`${API}/estado-arbol`).then(r => r.json()),
-        apiFetch(`${API}/arbol`).then(r => r.json()),
-      ]);
+      const rH = await apiFetch(`${API}/historial-empleado/cambios/todos`).then(r => r.json());
       setHistorial(Array.isArray(rH.data) ? rH.data : []);
-      setEstados(Array.isArray(rE.data) ? rE.data : []);
-      setArboles(Array.isArray(rA.data) ? rA.data : []);
     } catch (e) {
       setError('No se pudo conectar con el servidor');
     } finally {
@@ -240,140 +225,88 @@ export default function ReporteHistorialEstados({ onBack }) {
 
   useEffect(() => { cargar(); }, []);
 
-  // Mapas rápidos
-  const estadosMap = useMemo(() => {
-    const m = {};
-    estados.forEach(e => {
-      const id  = get(e,'ID_ESTADO','id_estado');
-      const nom = get(e,'NOMBRE_ESTADO','nombre_estado','NOMBRE','nombre') || `#${id}`;
-      if (id != null) m[id] = nom;
-    });
-    return m;
-  }, [estados]);
-
-  const arbolesMap = useMemo(() => {
-    const m = {};
-    arboles.forEach(a => {
-      const id  = get(a,'ID_ARBOL','id_arbol');
-      // Nombre legible: "Variedad · Surco X · Pos Y" para identificar
-      // al árbol de forma única, ya que pueden existir varios árboles
-      // con la misma variedad.
-      const variedad = get(a,'NOMBRE_ARBOL','nombre_arbol');
-      const surco    = get(a,'NUMERO_SURCO','numero_surco');
-      const posY     = get(a,'POSICION_Y','posicion_y');
-      const partes = [];
-      if (variedad) partes.push(variedad);
-      if (surco != null) partes.push(`Surco ${surco}`);
-      if (posY != null) partes.push(`Pos ${posY}`);
-      const nom = partes.length > 0 ? partes.join(' · ') : `Árbol #${id}`;
-      if (id != null) m[id] = nom;
-    });
-    return m;
-  }, [arboles]);
-
-  // Construye el nombre legible de un árbol a partir de un registro de
-  // historial. Usa primero los datos que el propio registro trae
-  // (NOMBRE_ARBOL, NUMERO_SURCO, POSICION_Y) y, como respaldo, busca en
-  // arbolesMap. Esto cubre el caso de árboles que ya no aparecen en
-  // /arbol (porque están inactivos o fueron resembrados) pero sí tienen
-  // historial.
-  const nombreArbolDeRegistro = (r) => {
-    const id       = get(r,'ID_ARBOL','id_arbol');
-    const variedad = get(r,'NOMBRE_ARBOL','nombre_arbol');
-    const surco    = get(r,'NUMERO_SURCO','numero_surco');
-    const posY     = get(r,'POSICION_Y','posicion_y');
-    const partes = [];
-    if (variedad) partes.push(variedad);
-    if (surco != null) partes.push(`Surco ${surco}`);
-    if (posY != null) partes.push(`Pos ${posY}`);
-    if (partes.length > 0) return partes.join(' · ');
-    return arbolesMap[id] || `Árbol #${id}`;
+  const nombreEmpleadoDeRegistro = (r) => {
+    const nombres   = get(r,'nombres');
+    const apellidos = get(r,'apellidos');
+    const id        = get(r,'empleado_id');
+    if (nombres || apellidos) return `${nombres || ''} ${apellidos || ''}`.trim();
+    return `Empleado #${id}`;
   };
 
   const filtrado = useMemo(() => {
     let rows = historial;
-    if (filtroArbol)  rows = rows.filter(r => String(get(r,'ID_ARBOL','id_arbol')) === filtroArbol);
-    if (filtroEstado) rows = rows.filter(r =>
-      String(get(r,'ID_ESTADO_NUEVO','id_estado_nuevo')) === filtroEstado
-    );
+    if (filtroEmpleado) rows = rows.filter(r => String(get(r,'empleado_id')) === filtroEmpleado);
+    if (filtroCampo)    rows = rows.filter(r => get(r,'campo_modificado') === filtroCampo);
     if (fechaDesde) {
-      // Comparar solo la parte de fecha (YYYY-MM-DD) para evitar problemas de zona horaria
       rows = rows.filter(r => {
-        const fechaRaw = get(r,'FECHA_CAMBIO','fecha_cambio');
+        const fechaRaw = get(r,'fecha');
         if (!fechaRaw) return false;
-        const fechaRegistro = String(fechaRaw).slice(0, 10); // "YYYY-MM-DD"
-        return fechaRegistro >= fechaDesde;
+        return String(fechaRaw).slice(0, 10) >= fechaDesde;
       });
     }
     if (fechaHasta) {
       rows = rows.filter(r => {
-        const fechaRaw = get(r,'FECHA_CAMBIO','fecha_cambio');
+        const fechaRaw = get(r,'fecha');
         if (!fechaRaw) return false;
-        const fechaRegistro = String(fechaRaw).slice(0, 10); // "YYYY-MM-DD"
-        return fechaRegistro <= fechaHasta;
+        return String(fechaRaw).slice(0, 10) <= fechaHasta;
       });
     }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(r =>
-        [nombreArbolDeRegistro(r),
-         estadosMap[get(r,'ID_ESTADO_NUEVO','id_estado_nuevo')],
-         get(r,'OBSERVACIONES','observaciones')]
+        [nombreEmpleadoDeRegistro(r),
+         get(r,'campo_modificado'),
+         get(r,'valor_anterior'),
+         get(r,'valor_nuevo')]
           .some(v => String(v||'').toLowerCase().includes(q))
       );
     }
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historial, filtroArbol, filtroEstado, search, fechaDesde, fechaHasta, arbolesMap, estadosMap]);
+  }, [historial, filtroEmpleado, filtroCampo, search, fechaDesde, fechaHasta]);
 
-  // Top 5 árboles con más cambios — el nombre se obtiene del primer
-  // registro de cada árbol (todos los registros del mismo ID traen la
-  // misma variedad/surco/pos del árbol).
   const top5 = useMemo(() => {
     const c = {};
     const nombres = {};
     historial.forEach(r => {
-      const id = get(r,'ID_ARBOL','id_arbol');
+      const id = get(r,'empleado_id');
       c[id] = (c[id] || 0) + 1;
-      if (!nombres[id]) nombres[id] = nombreArbolDeRegistro(r);
+      if (!nombres[id]) nombres[id] = nombreEmpleadoDeRegistro(r);
     });
     return Object.entries(c)
       .sort((a,b) => b[1] - a[1])
       .slice(0,5)
-      .map(([id, count]) => ({ nombre: nombres[id] || arbolesMap[id] || `#${id}`, count }));
+      .map(([id, count]) => ({ nombre: nombres[id] || `#${id}`, count }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historial, arbolesMap]);
+  }, [historial]);
 
   const maxTop = Math.max(...top5.map(t => t.count), 1);
 
-  // Lista única de árboles que aparecen en el historial, deduplicada por ID.
-  // Incluye conteo de cambios para que el cliente vea cuántos registros tiene cada árbol.
-  const arbolesDelHistorial = useMemo(() => {
-    const vistos = new Map(); // id → { variedad, surco, posY, conteo }
+  const empleadosDelHistorial = useMemo(() => {
+    const vistos = new Map();
     historial.forEach(r => {
-      const id = get(r,'ID_ARBOL','id_arbol');
+      const id = get(r,'empleado_id');
       if (id == null) return;
       if (!vistos.has(id)) {
-        const variedad = get(r,'NOMBRE_ARBOL','nombre_arbol') || '';
-        const surco    = get(r,'NUMERO_SURCO','numero_surco');
-        const posY     = get(r,'POSICION_Y','posicion_y');
-        vistos.set(id, { variedad, surco, posY, conteo: 1 });
+        vistos.set(id, { nombre: nombreEmpleadoDeRegistro(r), conteo: 1 });
       } else {
         vistos.get(id).conteo++;
       }
     });
     return Array.from(vistos.entries())
-      .map(([id, d]) => {
-        const partes = [];
-        if (d.variedad) partes.push(d.variedad);
-        if (d.surco != null) partes.push(`Surco ${d.surco}`);
-        if (d.posY  != null) partes.push(`Pos ${d.posY}`);
-        const nombre = partes.length > 0 ? partes.join(' · ') : `Árbol #${id}`;
-        return { id, nombre, conteo: d.conteo };
-      })
+      .map(([id, d]) => ({ id, nombre: d.nombre, conteo: d.conteo }))
       .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historial, arbolesMap]);
+  }, [historial]);
+
+  const camposDelHistorial = useMemo(() => {
+    const vistos = new Set();
+    historial.forEach(r => {
+      const campo = get(r,'campo_modificado');
+      if (campo) vistos.add(campo);
+    });
+    return Array.from(vistos).sort();
+  }, [historial]);
 
   const st = {
     root:       { minHeight:'100vh', background: isDark ? '#0f1117' : C.fondoClaro },
@@ -421,7 +354,7 @@ export default function ReporteHistorialEstados({ onBack }) {
             <span className="material-icons" style={{fontSize:16}}>arrow_back_ios</span> Inicio
           </button>
           <span style={st.sep}>/</span>
-          <span style={st.bcCur}>Reporte: Historial de Estados</span>
+          <span style={st.bcCur}>Reporte: Historial de Cambios</span>
         </div>
         <div style={st.titleRow}>
           <div style={st.titleBlock}>
@@ -430,8 +363,8 @@ export default function ReporteHistorialEstados({ onBack }) {
             </div>
             <div>
               <p style={st.panelLabel}>REPORTES</p>
-              <h1 style={st.pageTitle}>Historial de estados</h1>
-              <p style={st.pageSub}>Evolución de estado de cada árbol con fechas y observaciones</p>
+              <h1 style={st.pageTitle}>Historial de cambios</h1>
+              <p style={st.pageSub}>Evolución de datos de cada empleado con fechas y observaciones</p>
             </div>
           </div>
           <div style={{display:'flex',gap:8}}>
@@ -443,7 +376,7 @@ export default function ReporteHistorialEstados({ onBack }) {
             </button>
             <button
               style={{...st.refreshBtn, background:C.oroForestal}}
-              onClick={() => generarPDFHistorial(filtrado, estadosMap, arbolesMap)}
+              onClick={() => generarPDFHistorial(filtrado)}
               type="button"
             >
               <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(255,255,255,0.22)', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
@@ -460,23 +393,22 @@ export default function ReporteHistorialEstados({ onBack }) {
             <span className="material-icons" style={{color:C.tierraCalida}}>search</span>
             <input
               style={st.searchInput}
-              placeholder="Buscar árbol, estado, observación…"
+              placeholder="Buscar empleado, campo, valor…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <select style={st.sel} value={filtroArbol} onChange={e => setFiltroArbol(e.target.value)}>
-            <option value="">— Todos los árboles —</option>
-            {arbolesDelHistorial.map(({ id, nombre, conteo }) => (
+          <select style={st.sel} value={filtroEmpleado} onChange={e => setFiltroEmpleado(e.target.value)}>
+            <option value="">— Todos los empleados —</option>
+            {empleadosDelHistorial.map(({ id, nombre, conteo }) => (
               <option key={id} value={id}>{nombre}  ({conteo} cambio{conteo !== 1 ? 's' : ''})</option>
             ))}
           </select>
-          <select style={st.sel} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
-            <option value="">Todos los estados</option>
-            {estados.map(e => {
-              const id = get(e,'ID_ESTADO','id_estado');
-              return <option key={id} value={id}>{estadosMap[id]}</option>;
-            })}
+          <select style={st.sel} value={filtroCampo} onChange={e => setFiltroCampo(e.target.value)}>
+            <option value="">Todos los campos</option>
+            {camposDelHistorial.map(campo => (
+              <option key={campo} value={campo}>{campo}</option>
+            ))}
           </select>
           <input type="date" style={st.sel} value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} title="Desde"/>
           <input type="date" style={st.sel} value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} title="Hasta"/>
@@ -489,7 +421,7 @@ export default function ReporteHistorialEstados({ onBack }) {
       {/* Top 5 */}
       {top5.length > 0 && (
         <div style={st.topCard}>
-          <p style={st.topTitle}>Top 5 — Árboles con más cambios de estado</p>
+          <p style={st.topTitle}>Top 5 — Empleados con más cambios</p>
           <div style={st.topBars}>
             {top5.map(({ nombre, count }, i) => (
               <div key={i} style={st.topItem}>
@@ -536,33 +468,35 @@ export default function ReporteHistorialEstados({ onBack }) {
             <table style={st.table}>
               <thead>
                 <tr>
-                  {['#','Árbol','Estado anterior','Estado nuevo','Fecha cambio','Observaciones'].map(h => (
+                  {['#','Empleado','Campo','Valor anterior','Valor nuevo','Fecha','Modificado por'].map(h => (
                     <th key={h} style={st.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtrado.map((row, i) => {
-                  const arbol   = nombreArbolDeRegistro(row);
-                  const estAnt  = estadosMap[get(row,'ID_ESTADO_ANTERIOR','id_estado_anterior')] || '—';
-                  const estNuevo= estadosMap[get(row,'ID_ESTADO_NUEVO','id_estado_nuevo')] || '—';
-                  const fCambio = fmt(get(row,'FECHA_CAMBIO','fecha_cambio'));
-                  const obs     = get(row,'OBSERVACIONES','observaciones') || '—';
+                  const emp    = nombreEmpleadoDeRegistro(row);
+                  const campo  = get(row,'campo_modificado') || '—';
+                  const valAnt = get(row,'valor_anterior') || '—';
+                  const valNvo = get(row,'valor_nuevo') || '—';
+                  const fReg   = fmt(get(row,'fecha'));
+                  const modPor = get(row,'usuario_nombre') || 'Sistema';
                   return (
                     <tr key={i} style={i%2===0
                       ? { background: isDark ? '#1a1f2e' : '#fff' }
                       : { background: isDark ? 'rgba(255,255,255,0.03)' : C.fondoClaro }}>
                       <td style={st.td}>{i+1}</td>
-                      <td style={{...st.td, fontWeight:600, color: isDark ? '#86efac' : C.verdeProfundo}}>{arbol}</td>
-                      <td style={{...st.td, color: isDark ? '#94a3b8' : C.tierraCalida}}>{estAnt}</td>
+                      <td style={{...st.td, fontWeight:600, color: isDark ? '#86efac' : C.verdeProfundo}}>{emp}</td>
+                      <td style={{...st.td, color: isDark ? '#94a3b8' : C.tierraCalida}}>{campo}</td>
+                      <td style={{...st.td, color: isDark ? '#94a3b8' : C.tierraCalida}}>{valAnt}</td>
                       <td style={st.td}>
                         <span style={{background: isDark ? 'rgba(34,197,94,0.12)' : C.verdeMenta, color: isDark ? '#86efac' : C.verdeProfundo,
                           padding:'3px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>
-                          {estNuevo}
+                          {valNvo}
                         </span>
                       </td>
-                      <td style={st.td}>{fCambio}</td>
-                      <td style={{...st.td, color: isDark ? '#64748b' : C.tierraCalida, fontSize:11}}>{obs}</td>
+                      <td style={st.td}>{fReg}</td>
+                      <td style={{...st.td, color: isDark ? '#64748b' : C.tierraCalida, fontSize:11}}>{modPor}</td>
                     </tr>
                   );
                 })}
@@ -574,6 +508,3 @@ export default function ReporteHistorialEstados({ onBack }) {
     </div>
   );
 }
-
-
-

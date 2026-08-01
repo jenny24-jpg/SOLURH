@@ -33,30 +33,33 @@ export default function Login({ onRegistro }) {
       <div className={s.left}>
         <div className={s.lines} />
 
-        <div className={s.features}>
-          {[
-            { icon:'park',            label:'Control de árboles' },
-            { icon:'bug_report',      label:'Registro de plagas' },
-            { icon:'science',         label:'Gestión de tratamientos' },
-            { icon:'landscape',       label:'Administración de fincas' },
-            { icon:'map',             label:'Mapa interactivo de árboles' },
-          ].map(f => (
-            <div key={f.icon} className={s.feature}>
-              <div className={s.featIcon}>
-                <span className="material-icons">{f.icon}</span>
-              </div>
-              <span>{f.label}</span>
-            </div>
-          ))}
-        </div>
+       <div className={s.features}>
+  {[
+    { icon: 'groups', label: 'Gestión de colaboradores' },
+    { icon: 'badge', label: 'Control de personal' },
+    { icon: 'apartment', label: 'Departamentos' },
+    { icon: 'supervisor_account', label: 'Supervisores' },
+    { icon: 'analytics', label: 'Reportes y estadísticas' },
+  ].map((f) => (
+    <div key={f.icon} className={s.feature}>
+      <div className={s.featIcon}>
+        <span className="material-icons">{f.icon}</span>
+      </div>
+      <span>{f.label}</span>
+    </div>
+  ))}
+</div>
 
-        <div className={s.branding}>
-          <h1>Gestión<br />Forestal</h1>
-          <p>Sistema de control y monitoreo de árboles</p>
-        </div>
+       <div className={s.branding}>
+    <h1>SoluRH</h1>
+    <p>Sistema Integral de Recursos Humanos</p>
+</div>
 
-        <span className={`material-icons ${s.leaf1}`}>eco</span>
-        <span className={`material-icons ${s.leaf2}`}>eco</span>
+<img
+    src="/images/logo-soluservis.png"
+    alt="Soluservis"
+    className={s.logoLeft}
+/>
       </div>
 
       {/* ── Lado blanco ────────────────────────── */}
@@ -66,12 +69,16 @@ export default function Login({ onRegistro }) {
         <div className={s.card}>
           {/* Header */}
           <div className={s.cardHeader}>
-            <div className={s.logo}>
-              <span className="material-icons">park</span>
-            </div>
+           <div className={s.logo}>
+  <img
+    src="/images/logo-soluservis.png"
+    alt="Soluservis"
+    className={s.logoImage}
+  />
+</div>
             <div>
               <h2>Bienvenido</h2>
-              <p>Inicia sesión para continuar</p>
+           <p>Sistema de Gestión de Colaboradores</p>
             </div>
           </div>
 
@@ -124,7 +131,7 @@ export default function Login({ onRegistro }) {
 
           {/* Links footer */}
           <div className={s.cardFooterLinks}>
-            <a href="mailto:soporte@gestionforestal.com">
+            <a href="mailto:contabilidad@soluservis.com">
               Atención y soporte
             </a>
             <div className={s.cardFooterSep} />
@@ -154,7 +161,7 @@ export default function Login({ onRegistro }) {
       </div>
 
       <p className={s.footer}>
-        © {new Date().getFullYear()} Sistema de Gestión Forestal
+        © {new Date().getFullYear()} Soluservis, S.A.
       </p>
     </div>
   );

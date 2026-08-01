@@ -34,7 +34,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
     return (
       <nav className={s.rail}>
         <div className={s.railLogo}>
-          <span className="material-icons">park</span>
+          <span className="material-icons">groups</span>
         </div>
 
         <button
@@ -73,11 +73,11 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
       <div className={s.sidebarTop}>
         <div className={s.logo}>
           <div className={s.logoIcon}>
-            <span className="material-icons">park</span>
+            <span className="material-icons">groups</span>
           </div>
           <div className={s.logoText}>
-            <p className={s.logoTitle}>Gestión Árboles</p>
-            <p className={s.logoSub}>Panel agrícola</p>
+            <p className={s.logoTitle}>Gestión de Personal</p>
+            <p className={s.logoSub}>Panel de RRHH</p>
           </div>
         </div>
 

@@ -4,20 +4,22 @@ import s from './HistorialCambios.module.css';
 import { API, apiFetch } from '../context/AuthContext';
 
 const TABLAS = [
-  { key:'',                   label:'Todas las tablas'   },
-  { key:'FINCA',              label:'Fincas'             },
-  { key:'SECTOR',             label:'Sectores'           },
-  { key:'ARBOL',              label:'Árboles'            },
-  { key:'REGISTRO_PLAGA',     label:'Registros de plaga' },
-  { key:'REGISTRO_TRATAMIENTO', label:'Tratamientos'     },
-  { key:'RESIEMBRA',          label:'Resiembras'         },
-  { key:'USUARIO',            label:'Usuarios'           },
+  { key:'',                     label:'Todas las tablas'      },
+  { key:'CLIENTES',             label:'Clientes'              },
+  { key:'SUPERVISORES',         label:'Supervisores'          },
+  { key:'EMPLEADOS',            label:'Empleados'             },
+  { key:'ASISTENCIAS',          label:'Asistencias'           },
+  { key:'HORAS_EXTRA',          label:'Horas extras'          },
+  { key:'DOCUMENTOS_EMPLEADO',  label:'Documentos'            },
+  { key:'FOTOS_ASISTENCIA',     label:'Fotos de asistencia'   },
+  { key:'USUARIOS',             label:'Usuarios'              },
 ];
 
+
 const OP_COLOR = {
-  INSERT: { bg:'#E8F5E9', color:'#1B4D2A', icon:'add_circle' },
-  UPDATE: { bg:'#FFF8E1', color:'#E65100', icon:'edit'       },
-  DELETE: { bg:'#FFEBEE', color:'#8B2E2E', icon:'delete'     },
+  INSERT: { bg:'#E8F5E9', color:'#241b75', icon:'add_circle' },
+  UPDATE: { bg:'#FFF8E1', color:'#0f00e6', icon:'edit'       },
+  DELETE: { bg:'#FFEBEE', color:'#17157e', icon:'delete'     },
 };
 
 function formatFecha(val) {

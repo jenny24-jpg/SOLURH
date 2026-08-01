@@ -9,24 +9,11 @@ const { verificarToken } = require('./middleware/auth');
 const errorHandler       = require('./middleware/errorHandler');
 
 // ── Rutas ────────────────────────────────────────────────
-const arbolRoutes                     = require('./routes/arbolRoutes');
-const estadoArbolRoutes               = require('./routes/estadoArbolRoutes');
-const fincaRoutes                     = require('./routes/fincaRoutes');
-const historialEstadoRoutes           = require('./routes/historialEstadoRoutes');
-const plagaEnfermedadRoutes           = require('./routes/plagaEnfermedadRoutes');
-const registroPlagaRoutes             = require('./routes/registroPlagaRoutes');
-const registroTratamientoRoutes       = require('./routes/registroTratamientoRoutes');
-const resiembraRoutes                 = require('./routes/resiembraRoutes');
-const sectorRoutes                    = require('./routes/sectorRoutes');
-const tipoFertilizanteRoutes          = require('./routes/tipoFertilizanteRoutes');
-const tipoTratamientoRoutes           = require('./routes/tipoTratamientoRoutes');
-const tipoVariedadArbolRoutes         = require('./routes/tipoVariedadArbolRoutes');
-const movimientoInventarioArbolRoutes = require('./routes/movimientoInventarioArbolRoutes');
-const tipoMovimientoInventarioRoutes  = require('./routes/tipoMovimientoInventarioRoutes');
-const mapaplanoRoutes                 = require('./routes/mapaPlanoRoutes');
-const usuarioRoutes                   = require('./routes/usuarioRoutes');
-const auditoriaRoutes                 = require('./routes/auditoriaRoutes');
-const reporteRoutes = require('./routes/reporteRoutes');
+const usuarioRoutes    = require('./routes/usuarioRoutes');
+const clienteRoutes    = require('./routes/clienteRoutes');
+const empleadoRoutes   = require('./routes/empleadoRoutes');
+const supervisorRoutes = require('./routes/supervisorRoutes');
+const auditoriaRoutes  = require('./routes/auditoriaRoutes');
 
 const app = express();
 
@@ -51,33 +38,25 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' }));
 
 // ── Health check ──────────────────────────────────────────
-app.get('/', (req, res) => res.json({ ok: true, message: 'API Gestion de Arboles activa' }));
+app.get('/', (req, res) => res.json({ ok: true, message: 'API SoluRH activa' }));
 
 // ── Rutas de usuarios (login es publico) ──────────────────
 app.use('/api/usuarios', usuarioRoutes);
-
-app.use('/api/reportes', reporteRoutes);
 
 // ── JWT — protege todo lo de abajo ────────────────────────
 app.use(verificarToken);
 
 // ── Rutas protegidas ─────────────────────────────────────
-app.use('/api/arbol',                arbolRoutes);
-app.use('/api/estado-arbol',         estadoArbolRoutes);
-app.use('/api/finca',                fincaRoutes);
-app.use('/api/historial-estado',     historialEstadoRoutes);
-app.use('/api/plaga-enfermedad',     plagaEnfermedadRoutes);
-app.use('/api/registro-plaga',       registroPlagaRoutes);
-app.use('/api/registro-tratamiento', registroTratamientoRoutes);
-app.use('/api/resiembra',            resiembraRoutes);
-app.use('/api/sector',               sectorRoutes);
-app.use('/api/tipo-fertilizante',    tipoFertilizanteRoutes);
-app.use('/api/tipo-tratamiento',     tipoTratamientoRoutes);
-app.use('/api/tipos-variedad',       tipoVariedadArbolRoutes);
-app.use('/api/movimiento-inventario',movimientoInventarioArbolRoutes);
-app.use('/api/tipo-movimiento',      tipoMovimientoInventarioRoutes);
-app.use('/api/mapa-plano',           mapaplanoRoutes);
-app.use('/api/auditoria',            auditoriaRoutes);
+app.use('/api/cliente', clienteRoutes);
+app.use('/api/empleado', empleadoRoutes);
+app.use('/api/supervisor', supervisorRoutes);
+app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/horas-extra', require('./routes/horaextraRoute'));
+app.use('/api/asistencia', require('./routes/asistenciaRoutes'));
+app.use('/api/documento-empleado', require('./routes/documentoempleadoRoutes'));
+app.use('/api/foto-asistencia', require('./routes/fotoasistenciaRoutes'));
+app.use('/api/historial-empleado', require('./routes/historialempleadoRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // ── Error handler global (siempre al final) ───────────────
 app.use(errorHandler);
@@ -87,13 +66,9 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
   try {
     await initDB();
-    console.log('Pool de Oracle creado correctamente');
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en http://localhost:${PORT}`);
       console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
-      console.log('Logs de peticiones activos (morgan)');
-      console.log('Headers de seguridad activos (helmet)');
-      console.log('Validaciones de entrada activas (express-validator)');
     });
   } catch (error) {
     console.error('No se pudo iniciar el servidor:', error.message);
