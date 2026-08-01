@@ -1,4 +1,4 @@
-# Sistema de Gestión de Árboles
+# Sistema de GPersonal
 
 Sistema web full-stack para administración de inventario, monitoreo y trazabilidad de árboles en fincas agrícolas.
 
