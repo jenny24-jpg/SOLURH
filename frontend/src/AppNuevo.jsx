@@ -107,8 +107,8 @@ function MainLayout() {
             </button>
             <div className="mobileBrand">
               <div className="mobileBrandIcon">
-                <span className="material-icons">park</span>
-              </div>
+  <span className="material-icons">badge</span>
+</div>
               <div className="mobileBrandText">
                 <span>SoluRH</span>
                 <small>Panel de RRHH</small>
@@ -224,10 +224,10 @@ function Splash() {
   return (
     <div className="splashScreen">
       <div className="splashLogo">
-        <span className="material-icons">park</span>
+        <span className="material-icons">badge</span>
       </div>
-      <p className="splashTitle">Gestión Árboles</p>
-      <p className="splashSubtitle">Panel agrícola</p>
+      <p className="splashTitle">SoluRH</p>
+      <p className="splashSubtitle">Panel de RRHH</p>
       <div className="splashBar"><div className="splashBarFill"/></div>
       <p className="splashText">Cargando sistema...</p>
     </div>

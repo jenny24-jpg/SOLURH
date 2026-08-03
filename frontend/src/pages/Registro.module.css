@@ -4,7 +4,7 @@
 .logo { width:44px; height:44px; background:var(--oro-forestal); border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .logo .material-icons { color:var(--verde-profundo); font-size:24px; }
 .header h2 { color:#fff; font-size:16px; font-weight:700; }
-.header p  { color:rgba(76,185,104,.9); font-size:11px; }
+.header p  { color:rgba(64, 16, 177, 0.9); font-size:11px; }
 .secTitle { display:flex; align-items:center; gap:8px; color:var(--verde-profundo); font-weight:700; font-size:13px; margin-bottom:12px; }
 .secTitle .material-icons { font-size:16px; color:var(--verde-medio); }
 .eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--tierra-calida); display:flex; align-items:center; }
@@ -36,7 +36,7 @@
 [data-theme="dark"] .cardHeader p  { color: #64748b !important; }
 [data-theme="dark"] .divider     { background: rgba(255,255,255,0.06) !important; }
 [data-theme="dark"] .field       { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.10) !important; color: #e2e8f0 !important; }
-[data-theme="dark"] .field:focus-within { border-color: #22c55e !important; }
+[data-theme="dark"] .field:focus-within { border-color: #220a5a !important; }
 [data-theme="dark"] .field input { color: #e2e8f0 !important; background: transparent !important; }
 [data-theme="dark"] .field input::placeholder { color: #475569 !important; }
 
@@ -53,5 +53,5 @@
   background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.10);
 }
-:global([data-theme="dark"]) .field:focus-within { border-color: #22c55e; }
+:global([data-theme="dark"]) .field:focus-within { border-color: #220a5a; } #220a5a
 :global([data-theme="dark"]) .field input { color: #e2e8f0; background: transparent; }

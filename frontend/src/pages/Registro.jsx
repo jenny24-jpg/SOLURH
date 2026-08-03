@@ -119,7 +119,7 @@ export default function Registro({ onLogin }) {
       <div className={s.card}>
         <div className={s.header}>
           <div className={s.logo}>
-            <span className="material-icons">park</span>
+            <span className="material-icons">badge</span>
           </div>
 
           <div>

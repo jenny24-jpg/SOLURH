@@ -15,11 +15,11 @@ const C = {
   text:      "#1e293b",
   textSub:   "#475569",
   textMuted: "#94a3b8",
-  accent:    "#16a34a",
-  accentBg:  "#f0fdf4",
+  accent:    "#0ea5e9",
+  accentBg:  "#f0f9ff",
 
   /* estado palettes — exact colors per user spec */
-  CRECIMIENTO: { base:"#22c55e", dark:"#15803d", glow:"rgba(34,197,94,0.30)",  bg:"#f0fdf4", border:"#bbf7d0", text:"#15803d", label:"#dcfce7" },
+  CRECIMIENTO: { base:"#38bdf8", dark:"#0284c7", glow:"rgba(56,189,248,0.30)",  bg:"#f0f9ff", border:"#bae6fd", text:"#0369a1", label:"#e0f2fe" },
   PRODUCCION:  { base:"#3b82f6", dark:"#1d4ed8", glow:"rgba(59,130,246,0.30)", bg:"#eff6ff", border:"#bfdbfe", text:"#1d4ed8", label:"#dbeafe" },
   "PRODUCCIÓN":{ base:"#3b82f6", dark:"#1d4ed8", glow:"rgba(59,130,246,0.30)", bg:"#eff6ff", border:"#bfdbfe", text:"#1d4ed8", label:"#dbeafe" },
   ENFERMO:     { base:"#f97316", dark:"#ea580c", glow:"rgba(249,115,22,0.30)", bg:"#fff7ed", border:"#fed7aa", text:"#c2410c", label:"#ffedd5" },
@@ -69,29 +69,22 @@ const getResiembraVisual = (nombreEstado) => {
   const e = String(nombreEstado || "").toUpperCase().trim();
   if (e === "MUERTO")    return { bg:"#fef2f2", border:"#fecaca", text:"#b91c1c", soft:"#b91c1c", buttonBg:"#ef4444", buttonText:"#fff", rowBg:"#fef9f9" };
   if (e === "RESIEMBRA") return { bg:"#faf5ff", border:"#e9d5ff", text:"#7e22ce", soft:"#7e22ce", buttonBg:"#a855f7", buttonText:"#fff", rowBg:"#fdf8ff" };
-  return { bg:"#f0fdf4", border:"#bbf7d0", text:"#15803d", soft:"#15803d", buttonBg:"#22c55e", buttonText:"#fff", rowBg:"#f8fffe" };
+  return { bg:"#f0f9ff", border:"#bae6fd", text:"#0369a1", soft:"#0369a1", buttonBg:"#38bdf8", buttonText:"#fff", rowBg:"#f8feff" };
 };
 
 const getNumeroPosicionArbol = (arbol) => Math.max(Number(arbol?.POSICION_Y || 1), 1);
 
 /* ══════════════════════════════════════════════════════════
    TREE SVG — game-style isometric, large soil disc
-   viewBox "0 0 80 96":
-     Canopy:  y 0  → 52  (tall stacked ellipses)
-     Trunk:   y 48 → 68
-     Soil:    y 60 → 96  (large, prominent ground circle)
-   Rendered at size=52px → soil ~20px diameter, very visible.
-   Button uses translate(-50%,-50%) so SVG center = map point.
 ══════════════════════════════════════════════════════════ */
 const TreeSVG = ({ estado, active, size = 52, pulsing = false, hovered = false }) => {
   const cc = getColor(estado);
   const sz = size;
   const isDead = String(estado || "").toUpperCase().trim() === "MUERTO";
 
-  // Three tones for canopy depth
-  const cTop  = cc.base;                        // brightest — top layer
-  const cMid  = cc.dark;                        // medium — mid layer
-  const cBot  = cc.dark;                        // darkest — base layer (use opacity)
+  const cTop  = cc.base;
+  const cMid  = cc.dark;
+  const cBot  = cc.dark;
 
   if (isDead) {
     return (
@@ -100,11 +93,9 @@ const TreeSVG = ({ estado, active, size = 52, pulsing = false, hovered = false }
           filter: active
             ? `drop-shadow(0 4px 10px ${cc.base}bb) drop-shadow(0 0 18px ${cc.base}55)`
             : `drop-shadow(0 3px 6px rgba(0,0,0,0.45))` }}>
-        {/* TRUNK */}
         <rect x="33" y="48" width="14" height="30" rx="4" fill="#3d1f08"/>
         <rect x="35" y="48" width="5"  height="30" rx="3" fill="#6B3A15" opacity="0.55"/>
         <ellipse cx="40" cy="48" rx="7" ry="2.5" fill="#6B3A15"/>
-        {/* BARE BRANCHES */}
         <line x1="40" y1="48" x2="20" y2="28" stroke="#3d1f08" strokeWidth="5" strokeLinecap="round"/>
         <line x1="40" y1="42" x2="60" y2="24" stroke="#3d1f08" strokeWidth="5" strokeLinecap="round"/>
         <line x1="40" y1="36" x2="24" y2="20" stroke="#3d1f08" strokeWidth="3.5" strokeLinecap="round"/>
@@ -124,27 +115,22 @@ const TreeSVG = ({ estado, active, size = 52, pulsing = false, hovered = false }
           ? `drop-shadow(0 4px 10px ${cc.base}99)`
           : `drop-shadow(0 3px 8px rgba(0,0,0,0.38))` }}>
 
-      {/* ═══ TRUNK ═══ */}
       <rect x="33" y="54" width="14" height="24" rx="4" fill="#3d1f08"/>
       <rect x="35" y="54" width="5"  height="24" rx="3" fill="#7a4018" opacity="0.6"/>
       <ellipse cx="40" cy="54" rx="7" ry="2.5" fill="#9e5a25"/>
 
-      {/* ═══ CANOPY LAYER 1 — base, widest, darkest ═══ */}
       <ellipse cx="40" cy="48" rx="30" ry="12" fill={cBot} opacity="0.85"/>
       <ellipse cx="40" cy="46" rx="26" ry="10" fill={cMid} opacity="0.95"/>
       <ellipse cx="40" cy="44" rx="22" ry="8.5" fill={cTop}/>
 
-      {/* ═══ CANOPY LAYER 2 — middle ═══ */}
       <ellipse cx="40" cy="33" rx="22" ry="11" fill={cBot} opacity="0.85"/>
       <ellipse cx="40" cy="31" rx="18" ry="9"  fill={cMid} opacity="0.95"/>
       <ellipse cx="40" cy="29" rx="15" ry="7.5" fill={cTop}/>
 
-      {/* ═══ CANOPY LAYER 3 — top ═══ */}
       <ellipse cx="40" cy="19" rx="13" ry="7.5" fill={cBot} opacity="0.85"/>
       <ellipse cx="40" cy="17" rx="10" ry="6"   fill={cMid} opacity="0.95"/>
       <ellipse cx="40" cy="15" rx="8"  ry="5"   fill={cTop}/>
 
-      {/* ═══ HIGHLIGHTS ═══ */}
       <ellipse cx="32" cy="12" rx="5"   ry="3"   fill="white" opacity="0.30"/>
       <ellipse cx="30" cy="26" rx="6"   ry="3"   fill="white" opacity="0.20"/>
       <ellipse cx="29" cy="40" rx="7"   ry="3.5" fill="white" opacity="0.14"/>
@@ -153,7 +139,7 @@ const TreeSVG = ({ estado, active, size = 52, pulsing = false, hovered = false }
 };
 
 /* ══════════════════════════════════════════════════════════
-   MAP POSITION HELPERS  (identical logic to original)
+   MAP POSITION HELPERS
 ══════════════════════════════════════════════════════════ */
 const getSectorBox = (_sector, idx, total) => {
   const count = Math.max(Number(total || 1), 1);
@@ -175,10 +161,6 @@ const getArbolPosition = (arbol, arboles, sectores) => {
   if (!sector) return { left:50, top:50 };
   const box = getSectorBox(sector, idxSector, sectores.length);
 
-  // Padding inside the cell (in % of the cell's own dimensions):
-  // - Left/Right: 8% each side
-  // - Top: 38% to clear the label chip (~32px in a ~200px cell) + some breathing room
-  // - Bottom: 8% so shadow/ground disc doesn't clip at the cell border
   const PL=8, PR=8, PT=38, PB=8;
   const usableW = Math.max(100-PL-PR, 1);
   const usableH = Math.max(100-PT-PB, 1);
@@ -199,11 +181,9 @@ const getArbolPosition = (arbol, arboles, sectores) => {
   const sIdx = Math.max(Number(arbol.NUMERO_SURCO||1),1)-1;
   const pIdx = Math.max(Number(arbol.POSICION_Y||1),1)-1;
 
-  // Position within the cell (% of cell)
   const relX = PL + sIdx*stepX + stepX/2;
   const relY = PT + pIdx*stepY + stepY/2;
 
-  // Convert to % of the full map container
   return {
     left: box.left + (box.width  * relX) / 100,
     top:  box.top  + (box.height * relY) / 100,
@@ -258,10 +238,6 @@ const FieldLabel = ({ children }) => (
 );
 
 /* ══════════════════════════════════════════════════════════
-   MODAL STYLES
-══════════════════════════════════════════════════════════ */
-
-/* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function MapaPlanoModule() {
@@ -291,7 +267,6 @@ export default function MapaPlanoModule() {
   const [alertaForm,                setAlertaForm]                = useState({ id_plaga:"", fecha_deteccion:HOY(), fecha_resolucion:"", observaciones:"" });
   const [resiembraForm,             setResiembraForm]             = useState({ fecha_resiembra:HOY(), motivo:"" });
 
-  /* ── tour steps ── */
   const mapTourSteps = [
     { target:'.tour-mapa-finca',       content:'Aquí seleccionas la finca.' },
     { target:'.tour-mapa-tabs',        content:'Aquí cambias entre Mapa, Alertas y Gestión de resiembra.' },
@@ -310,7 +285,6 @@ export default function MapaPlanoModule() {
     { target:'.tour-nuevo-guardar',     content:'Cuando termines, presiona aquí para guardar el árbol.' },
   ];
 
-  /* ── effects ── */
   useEffect(() => { cargarFincas(); cargarCatalogos(); }, []);
   useEffect(() => {
     if (datosPlano && vista === VISTA.MAPA) { setMapTourRun(false); setTimeout(() => setMapTourRun(true), 800); }
@@ -324,7 +298,6 @@ export default function MapaPlanoModule() {
     return () => window.removeEventListener("arbol_actualizado", h);
   }, [fincaSeleccionada]);
 
-  /* ── API ── */
   const cargarFincas = async () => {
     try {
       const json = await apiFetch(`${API}/finca`).then(r=>r.json());
@@ -355,7 +328,6 @@ export default function MapaPlanoModule() {
   };
   const refrescarTodo = () => Promise.all([cargarPlano(fincaSeleccionada), cargarCatalogos()]);
 
-  /* ── derived ── */
   const finca     = datosPlano?.finca || null;
   const sectores  = useMemo(()=> Array.isArray(datosPlano?.sectores) ? datosPlano.sectores : [], [datosPlano]);
   const arboles   = useMemo(()=> Array.isArray(datosPlano?.arboles)  ? datosPlano.arboles  : [], [datosPlano]);
@@ -390,7 +362,6 @@ export default function MapaPlanoModule() {
   const arbolesResiembra       = useMemo(()=>[...arbolesMuertosParaResiembra,...arbolesYaResiembrados], [arbolesMuertosParaResiembra, arbolesYaResiembrados]);
   const sectoresDeLaFinca      = useMemo(()=> (catalogos.sectores||[]).filter(s=> !fincaSeleccionada || String(s.ID_FINCA)===String(fincaSeleccionada)), [catalogos.sectores, fincaSeleccionada]);
 
-  /* ── modal ── */
   const openModal = (tipo) => {
     setModal({ tipo, loading:false, error:"" });
     if (tipo==="nuevo_arbol")       setNuevoArbolForm({ id_sector:sectorFiltro||"", id_tipo_variedad_arbol:"", id_estado:"", numero_surco:"", descripcion:"", posicion:"" });
@@ -400,7 +371,6 @@ export default function MapaPlanoModule() {
   };
   const closeModal = () => setModal({ tipo:null, loading:false, error:"" });
 
-  /* ── submit handlers ── */
   const submitNuevoArbol = async (e) => {
     e.preventDefault();
     try {
@@ -440,20 +410,17 @@ export default function MapaPlanoModule() {
     } catch(err) { setModal(m=>({...m,loading:false,error:err.message||"No se pudo registrar la resiembra."})); }
   };
 
-  /* ══════════════════════════════════════════════════════
-     RENDER
-  ══════════════════════════════════════════════════════ */
   return (
     <div style={css.root}>
       <style>{`
         .tree-btn { cursor:pointer; background:none; border:none; padding:0; }
         .tree-btn:hover { z-index:30 !important; }
-        .sector-cell:hover { border-color:#22c55e !important; box-shadow: inset 0 0 0 2px #22c55e22 !important; }
-        .tab-btn:hover { background:${isDark?"rgba(34,197,94,0.08)":"#f0fdf4"} !important; color:${isDark?"#86efac":"#15803d"} !important; }
+        .sector-cell:hover { border-color:#38bdf8 !important; box-shadow: inset 0 0 0 2px #38bdf822 !important; }
+        .tab-btn:hover { background:${isDark?"rgba(56,189,248,0.08)":"#f0f9ff"} !important; color:${isDark?"#7dd3fc":"#0284c7"} !important; }
         .alert-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,0.12) !important; }
-        .row-hover:hover  { background:${isDark?"rgba(34,197,94,0.06)":"#f8fafc"} !important; }
+        .row-hover:hover  { background:${isDark?"rgba(56,189,248,0.06)":"#f8fafc"} !important; }
         input, select, textarea { transition: border-color .15s; }
-        input:focus, select:focus, textarea:focus { border-color: #22c55e !important; outline:none; }
+        input:focus, select:focus, textarea:focus { border-color: #38bdf8 !important; outline:none; }
         select option { background:${isDark?"#1a1f2e":"#fff"}; color:${isDark?"#e2e8f0":"#1e293b"}; }
         @keyframes spin { to { transform:rotate(360deg) } }
         @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
@@ -463,18 +430,16 @@ export default function MapaPlanoModule() {
         ::-webkit-scrollbar-thumb { background:${isDark?"#2d3748":"#cbd5e1"}; border-radius:4px; }
       `}</style>
 
-      {/* Joyride */}
       <Joyride steps={mapTourSteps} run={mapTourRun} continuous showSkipButton showProgress disableScrolling
         callback={d=>{ if(d.status==="finished"||d.status==="skipped") setMapTourRun(false); }}
         floaterProps={{ offset:60 }}
         locale={{ back:'Atrás', close:'Cerrar', last:'Finalizar', next:'Siguiente', skip:'Saltar' }}
-        styles={{ options:{ zIndex:30000, primaryColor:'#16a34a' } }}/>
+        styles={{ options:{ zIndex:30000, primaryColor:'#0ea5e9' } }}/>
       <Joyride steps={nuevoArbolTourSteps} run={nuevoArbolTourRun} continuous showSkipButton showProgress disableScrolling
         callback={d=>{ if(d.status==="finished"||d.status==="skipped") setNuevoArbolTourRun(false); }}
         locale={{ back:'Atrás', close:'Cerrar', last:'Finalizar', next:'Siguiente', skip:'Saltar' }}
-        styles={{ options:{ zIndex:50000, primaryColor:'#16a34a' } }}/>
+        styles={{ options:{ zIndex:50000, primaryColor:'#0ea5e9' } }}/>
 
-      {/* ── TOP BAR ── */}
       <header style={css.topBar}>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           <div style={css.logoBox}>
@@ -502,7 +467,7 @@ export default function MapaPlanoModule() {
               style={{ ...css.tab, ...(vista===t.id ? css.tabActive : {}) }}>
               <span>{t.icon}</span> {t.label}
               {t.count>0 && <span style={{ fontSize:10, padding:"1px 7px", borderRadius:20,
-                background:vista===t.id?"#15803d":(isDark?"rgba(239,68,68,0.20)":"#fef2f2"), color:vista===t.id?"#fff":(isDark?"#fca5a5":"#b91c1c"),
+                background:vista===t.id?"#0284c7":(isDark?"rgba(239,68,68,0.20)":"#fef2f2"), color:vista===t.id?"#fff":(isDark?"#fca5a5":"#b91c1c"),
                 fontWeight:700 }}>{t.count}</span>}
             </button>
           ))}
@@ -513,26 +478,22 @@ export default function MapaPlanoModule() {
         </select>
       </header>
 
-      {/* ── STAT CARDS ── */}
       <div style={css.statsRow}>
-        <StatCard label="Total Árboles"    value={stats.total}                                         icon="🌳" color="#22c55e" sub={`${sectores.length} sectores activos`} isDark={isDark}/>
+        <StatCard label="Total Árboles"    value={stats.total}                                         icon="🌳" color="#0ea5e9" sub={`${sectores.length} sectores activos`} isDark={isDark}/>
         <StatCard label="En Producción"    value={stats.conteo.PRODUCCION||stats.conteo["PRODUCCIÓN"]||0} icon="🍊" color="#3b82f6" sub={`${Math.round(((stats.conteo.PRODUCCION||0)/Math.max(stats.total,1))*100)}% del total`} isDark={isDark}/>
         <StatCard label="Con Alertas"      value={stats.alertas}                                       icon="⚠️" color="#f97316" onClick={()=>setVista(VISTA.ALERTAS)} active={vista===VISTA.ALERTAS} sub={`${arbolesConPlagas.length} con plagas activas`} isDark={isDark}/>
         <StatCard label="Esp. Disponibles" value={resumenEspacio.espaciosDisponibles}                  icon="🌱" color="#a855f7" sub={`${resumenEspacio.metrosDisponibles} m² libres`} isDark={isDark}/>
       </div>
 
-      {/* ── LAYOUT ── */}
       <div style={css.layout}>
 
-        {/* LEFT SIDEBAR */}
         <aside style={css.sidebar}>
 
-          {/* Diagnóstico */}
           <div className="tour-mapa-diagnostico" style={css.card}>
             <p style={css.cardTitle}>Diagnóstico General</p>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", borderRadius:10, background:"#f0fdf4", border:"1px solid #bbf7d0", marginBottom:6 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", borderRadius:10, background:"#f0f9ff", border:"1px solid #bae6fd", marginBottom:6 }}>
               <span style={{ fontSize:12, color:C.textSub }}>Total árboles</span>
-              <strong style={{ fontSize:22, color:"#15803d" }}>{stats.total}</strong>
+              <strong style={{ fontSize:22, color:"#0284c7" }}>{stats.total}</strong>
             </div>
             {estadosUnicos.map(nombre=>{
               const cc=getColor(nombre), cnt=stats.conteo[String(nombre).toUpperCase().trim()]||0;
@@ -563,7 +524,6 @@ export default function MapaPlanoModule() {
             )}
           </div>
 
-          {/* Filtros */}
           <div className="tour-mapa-filtros" style={css.card}>
             <p style={css.cardTitle}>Filtros</p>
             <label style={css.label}>Sección</label>
@@ -583,7 +543,6 @@ export default function MapaPlanoModule() {
             )}
           </div>
 
-          {/* Resumen */}
           <div style={css.card}>
             <p style={css.cardTitle}>Resumen</p>
             {[
@@ -600,12 +559,11 @@ export default function MapaPlanoModule() {
             ].map(({l,v,warn,hi})=>(
               <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid #f1f5f9" }}>
                 <span style={{ fontSize:11, color:C.textMuted }}>{l}</span>
-                <strong style={{ fontSize:12, color:warn?"#b91c1c":hi?"#15803d":C.text }}>{v}</strong>
+                <strong style={{ fontSize:12, color:warn?"#b91c1c":hi?"#0284c7":C.text }}>{v}</strong>
               </div>
             ))}
           </div>
 
-          {/* Sectores */}
           {sectores.length>0 && (
             <div style={css.card}>
               <p style={css.cardTitle}>Sectores</p>
@@ -615,11 +573,11 @@ export default function MapaPlanoModule() {
                 return (
                   <div key={sec.ID_SECTOR} onClick={()=>setSectorFiltro(active?"":String(sec.ID_SECTOR))}
                     style={{ padding:"8px 10px", borderRadius:10, marginBottom:4, cursor:"pointer",
-                      background: active ? (isDark ? "rgba(34,197,94,0.10)" : "#f0fdf4") : (isDark ? "rgba(255,255,255,0.03)" : "#f8fafc"),
-                      border:`1px solid ${active ? (isDark ? "rgba(34,197,94,0.30)" : "#86efac") : C.border}`, transition:"all .15s" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:active?"#15803d":C.text }}>{sec.NOMBRE_SECTOR}</div>
+                      background: active ? (isDark ? "rgba(56,189,248,0.10)" : "#f0f9ff") : (isDark ? "rgba(255,255,255,0.03)" : "#f8fafc"),
+                      border:`1px solid ${active ? (isDark ? "rgba(56,189,248,0.30)" : "#7dd3fc") : C.border}`, transition:"all .15s" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:active?"#0284c7":C.text }}>{sec.NOMBRE_SECTOR}</div>
                     <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>
-                      {sec.TIPO_CULTIVO}{sec.AREA_HECTAREAS?` · ${sec.AREA_HECTAREAS} ha`:""} · <b style={{ color:"#16a34a" }}>{cnt}</b> árboles
+                      {sec.TIPO_CULTIVO}{sec.AREA_HECTAREAS?` · ${sec.AREA_HECTAREAS} ha`:""} · <b style={{ color:"#0ea5e9" }}>{cnt}</b> árboles
                     </div>
                     <div style={{ fontSize:10, color:C.textMuted }}>{sec.NUMERO_SURCOS||"—"} surcos</div>
                   </div>
@@ -629,10 +587,8 @@ export default function MapaPlanoModule() {
           )}
         </aside>
 
-        {/* CENTER */}
         <main style={css.center}>
 
-          {/* ── MAP VIEW ── */}
           {vista===VISTA.MAPA && (
             <div style={css.card}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14, flexWrap:"wrap", gap:10 }}>
@@ -640,13 +596,13 @@ export default function MapaPlanoModule() {
                   <p style={{ ...css.cardTitle, margin:0 }}>Mapa de Árboles</p>
                   {finca && <span style={{ fontSize:11, color:C.textMuted }}>{finca.NOMBRE_FINCA} · {anchoFinca}m × {largoFinca}m</span>}
                   <div style={{ marginTop:8 }}>
-                    <button style={{ background:"#16a34a", color:"#fff", border:"none", borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(22,163,74,0.3)" }}
+                    <button style={{ background:"#0ea5e9", color:"#fff", border:"none", borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(14,165,233,0.3)" }}
                       onClick={()=>setMostrarAlertaEspacios(true)}>🌱 Espacios dispo.</button>
                   </div>
                   <div style={{ marginTop:5, fontSize:11, color:C.textMuted }}>
                     Área total: {resumenEspacio.areaTotal} m² · Ocupados: {resumenEspacio.metrosOcupados} m² · Disponibles: {resumenEspacio.metrosDisponibles} m²
                   </div>
-                  <div style={{ fontSize:11, color:"#15803d", fontWeight:700 }}>
+                  <div style={{ fontSize:11, color:"#0284c7", fontWeight:700 }}>
                     Árboles sembrados: {resumenEspacio.arbolesSembrados} · Espacios disponibles: {resumenEspacio.espaciosDisponibles}
                   </div>
                 </div>
@@ -671,39 +627,31 @@ export default function MapaPlanoModule() {
                 </div>
               </div>
 
-              {/* MAP CANVAS */}
               <div className="tour-mapa-plano" style={{ position:"relative", width:"100%", height:480, borderRadius:16, overflow:"hidden", border:`1px solid ${C.border}`, boxShadow:"0 4px 20px rgba(0,0,0,0.12)" }}>
-                {/* === GRASS BACKGROUND === */}
-                {/* Base grass gradient */}
                 <div style={{ position:"absolute", inset:0,
-                  background:"linear-gradient(160deg, #5dc85d 0%, #3daa3d 20%, #2d9e2d 45%, #268c26 70%, #1e7a1e 100%)" }}/>
-                {/* Organic lighter grass patches */}
+                  background:"linear-gradient(160deg, #7dd3fc 0%, #38bdf8 20%, #0ea5e9 45%, #0284c7 70%, #075985 100%)" }}/>
                 <div style={{ position:"absolute", inset:0, pointerEvents:"none",
                   background:`
-                    radial-gradient(ellipse 55% 40% at 20% 30%, rgba(100,200,80,0.28) 0%, transparent 70%),
-                    radial-gradient(ellipse 40% 35% at 75% 20%, rgba(120,210,90,0.22) 0%, transparent 65%),
-                    radial-gradient(ellipse 50% 45% at 60% 75%, rgba(90,185,70,0.20) 0%, transparent 70%),
-                    radial-gradient(ellipse 35% 30% at 10% 80%, rgba(110,195,85,0.18) 0%, transparent 60%)
+                    radial-gradient(ellipse 55% 40% at 20% 30%, rgba(186,230,253,0.28) 0%, transparent 70%),
+                    radial-gradient(ellipse 40% 35% at 75% 20%, rgba(200,236,255,0.22) 0%, transparent 65%),
+                    radial-gradient(ellipse 50% 45% at 60% 75%, rgba(170,224,250,0.20) 0%, transparent 70%),
+                    radial-gradient(ellipse 35% 30% at 10% 80%, rgba(190,228,252,0.18) 0%, transparent 60%)
                   ` }}/>
-                {/* Fine grass texture — vertical blade lines */}
                 <div style={{ position:"absolute", inset:0, pointerEvents:"none",
                   backgroundImage:`repeating-linear-gradient(
                     90deg,
                     transparent 0px, transparent 11px,
                     rgba(0,0,0,0.04) 11px, rgba(0,0,0,0.04) 12px
                   )` }}/>
-                {/* Horizontal subtle rows */}
                 <div style={{ position:"absolute", inset:0, pointerEvents:"none",
                   backgroundImage:`repeating-linear-gradient(
                     0deg,
                     transparent 0px, transparent 23px,
                     rgba(0,0,0,0.03) 23px, rgba(0,0,0,0.03) 24px
                   )` }}/>
-                {/* Edge vignette — darker at borders like grass fields */}
                 <div style={{ position:"absolute", inset:0, pointerEvents:"none",
                   background:"radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.18) 100%)" }}/>
 
-                {/* Espacios popup */}
                 {mostrarAlertaEspacios && (
                   <div style={{ position:"absolute", top:14, right:14, zIndex:40, width:300,
                     background: isDark ? "#1a1f2e" : "#fff", borderRadius:16, padding:"16px 18px",
@@ -719,7 +667,7 @@ export default function MapaPlanoModule() {
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                       {[
-                        { l:"Espacios libres",  v:resumenEspacio.espaciosDisponibles, color:"#22c55e" },
+                        { l:"Espacios libres",  v:resumenEspacio.espaciosDisponibles, color:"#38bdf8" },
                         { l:"Capacidad total",  v:resumenEspacio.capacidadTotal,       color:"#3b82f6" },
                       ].map(({l,v,color})=>(
                         <div key={l} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0", borderRadius:10, padding:"10px 12px" }}>
@@ -749,7 +697,6 @@ export default function MapaPlanoModule() {
                 ) : (
                   <div style={{ position:"absolute", inset:0, transform:`scale(${zoom})`, transformOrigin:"top left", width:`${100/zoom}%`, height:`${100/zoom}%` }}>
 
-                    {/* Sectors (grass patches with dashed border) */}
                     {sectores.map((sector, i) => {
                       const pos = getSectorBox(sector, i, sectores.length);
                       const active = String(sectorFiltro)===String(sector.ID_SECTOR);
@@ -766,9 +713,7 @@ export default function MapaPlanoModule() {
                           style={{ position:"absolute", left:`${pos.left}%`, top:`${pos.top}%`, width:`${pos.width}%`, height:`${pos.height}%`,
                             borderRadius:14,
                             border:`2px dashed ${active?"rgba(255,255,255,0.85)":"rgba(255,255,255,0.45)"}`,
-                            /* Slightly darker than outer grass — subtle separation without bright lines */
-                            background: active ? "rgba(0,80,0,0.18)" : "rgba(0,60,0,0.12)",
-                            /* Subtle dark grid overlay via backgroundImage */
+                            background: active ? "rgba(0,40,80,0.18)" : "rgba(0,30,60,0.12)",
                             backgroundImage:`
                               linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)
@@ -776,20 +721,18 @@ export default function MapaPlanoModule() {
                             backgroundSize:"32px 32px",
                             boxShadow: active ? "inset 0 0 0 2px rgba(255,255,255,0.20)" : "none",
                             cursor:"pointer", transition:"all .25s", zIndex:1 }}>
-                          {/* sector label — compact chip, always top-left */}
                           <div style={{ position:"absolute", top:7, left:7,
                             background:"rgba(255,255,255,0.95)", backdropFilter:"blur(6px)",
                             borderRadius:8, padding:"4px 9px",
                             boxShadow:"0 2px 8px rgba(0,0,0,0.14)",
                             maxWidth:"calc(100% - 16px)", overflow:"hidden", zIndex:5 }}>
-                            <div style={{ fontWeight:700, color:"#15803d", fontSize:10, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{sector.NOMBRE_SECTOR}</div>
+                            <div style={{ fontWeight:700, color:"#0284c7", fontSize:10, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{sector.NOMBRE_SECTOR}</div>
                             <div style={{ color:"#64748b", fontSize:9, whiteSpace:"nowrap" }}>{sector.TIPO_CULTIVO} · {cnt} árboles{sector.AREA_HECTAREAS?` · ${sector.AREA_HECTAREAS} ha`:""}</div>
                           </div>
                         </div>
                       );
                     })}
 
-                    {/* Trees — soil disc as HTML div + SVG canopy/trunk on top */}
                     {arbolesFiltrados.map(arbol=>{
                       const pos    = getArbolPosition(arbol, arboles, sectores);
                       const active = arbolSeleccionado?.ID_ARBOL===arbol.ID_ARBOL;
@@ -806,22 +749,18 @@ export default function MapaPlanoModule() {
                             zIndex:active?30:hov?25:10,
                             transition:"transform .2s cubic-bezier(.34,1.56,.64,1)",
                             cursor:"pointer",
-                            /* Use a wrapper div so soil disc + SVG stack naturally */
                             display:"flex", flexDirection:"column", alignItems:"center" }}
                           onClick={()=>setArbolSeleccionado(arbol)}
                           onMouseEnter={()=>{ setTooltip(arbol); setHoveredArbol(arbol.ID_ARBOL); }}
                           onMouseLeave={()=>{ setTooltip(null); setHoveredArbol(null); }}>
 
-                          {/* SVG tree (canopy + trunk only, NO soil in SVG) */}
                           <TreeSVG estado={arbol.NOMBRE_ESTADO} active={active} hovered={hov} size={48} pulsing={hasAlert&&!active}/>
 
-                          {/* HTML SOIL DISC — always crisp, never clipped */}
                           <div style={{
-                            marginTop: -8,           // pull up to overlap slightly with trunk base
+                            marginTop: -8,
                             width: active ? 52 : hov ? 46 : 40,
                             height: active ? 16 : hov ? 14 : 12,
                             borderRadius:"50%",
-                            /* 4-stop radial gradient: dark outer → warm brown center */
                             background:`radial-gradient(ellipse at 40% 40%,
                               #d4914a 0%,
                               #9e5520 35%,
@@ -835,7 +774,6 @@ export default function MapaPlanoModule() {
                             transition:"all .2s",
                           }}/>
 
-                          {/* pulse ring (HTML element, always visible) */}
                           {hasAlert && !active && (
                             <div style={{
                               position:"absolute", bottom:-2,
@@ -846,13 +784,11 @@ export default function MapaPlanoModule() {
                             }}/>
                           )}
 
-                          {/* plaga dot */}
                           {conPlaga && <div style={{ position:"absolute", top:4, right:4, width:10, height:10, borderRadius:"50%", background:"#f97316", boxShadow:"0 0 6px #f97316cc", border:"2px solid #fff" }}/>}
                         </div>
                       );
                     })}
 
-                    {/* Tooltip */}
                     {tooltip && (()=>{
                       const pos=getArbolPosition(tooltip, arboles, sectores);
                       const cc=getColor(tooltip.NOMBRE_ESTADO);
@@ -872,11 +808,9 @@ export default function MapaPlanoModule() {
                     })()}
                   </div>
                 )}
-                {/* coords watermark */}
                 <div style={{ position:"absolute", bottom:8, right:10, fontSize:9, color:"rgba(255,255,255,0.5)", fontWeight:600 }}>{anchoFinca}m × {largoFinca}m</div>
               </div>
 
-              {/* Legend */}
               <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap", alignItems:"center" }}>
                 <span style={{ fontSize:11, color:C.textMuted, fontWeight:600 }}>Estados:</span>
                 {estadosUnicos.map(nombre=>{
@@ -896,7 +830,6 @@ export default function MapaPlanoModule() {
             </div>
           )}
 
-          {/* ── ALERTS VIEW ── */}
           {vista===VISTA.ALERTAS && (
             <div style={css.card}>
               <p style={css.cardTitle}>⚠️ Árboles que requieren atención <span style={{ fontSize:11, fontWeight:400, color:C.textMuted }}>({arbolesAlerta.length} árbol(es))</span></p>
@@ -933,19 +866,17 @@ export default function MapaPlanoModule() {
             </div>
           )}
 
-          {/* ── RESIEMBRA VIEW ── */}
           {vista===VISTA.RESIEMBRA && (
             <div style={css.card}>
               <p style={css.cardTitle}>🌿 Gestión de Resiembra <span style={{ fontSize:11, fontWeight:400, color:C.textMuted }}>({arbolesResiembra.length} registro(s))</span></p>
               <p style={{ fontSize:12, color:C.textMuted, marginBottom:14, lineHeight:1.7 }}>
                 Aquí se muestran tanto los árboles con oportunidad de resiembra (<strong>MUERTO</strong>) como los árboles ya marcados en estado <strong>RESIEMBRA</strong>.
               </p>
-              {/* summary */}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10, marginBottom:16 }}>
                 {[
                   { label:"Oportunidades pendientes", value:arbolesMuertosParaResiembra.length, color:"#ef4444", sub:"Árboles en estado MUERTO" },
                   { label:"Ya en resiembra",           value:arbolesYaResiembrados.length,        color:"#a855f7", sub:"Estado RESIEMBRA" },
-                  { label:"Total en seguimiento",      value:arbolesResiembra.length,             color:"#22c55e", sub:"Muertos + Resiembra" },
+                  { label:"Total en seguimiento",      value:arbolesResiembra.length,             color:"#38bdf8", sub:"Muertos + Resiembra" },
                 ].map(card=>(
                   <div key={card.label} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border:`1.5px solid ${card.color}33`, borderRadius:12, padding:"14px 16px", boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.05)" }}>
                     <div style={{ fontSize:11, color:card.color, fontWeight:700, marginBottom:6 }}>{card.label}</div>
@@ -954,7 +885,6 @@ export default function MapaPlanoModule() {
                   </div>
                 ))}
               </div>
-              {/* by-sector */}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8, marginBottom:16 }}>
                 {sectores.map(sec=>{
                   const registrosSector = arbolesResiembra.filter(a=>String(a.ID_SECTOR)===String(sec.ID_SECTOR));
@@ -975,7 +905,6 @@ export default function MapaPlanoModule() {
                   <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"40px 0", color:C.textMuted, fontSize:13 }}>No hay árboles registrados para gestión de resiembra</div>
                 )}
               </div>
-              {/* table */}
               {arbolesResiembra.length>0 && (
                 <div style={{ overflowX:"auto" }}>
                   <table style={css.table}>
@@ -1016,12 +945,11 @@ export default function MapaPlanoModule() {
             </div>
           )}
 
-          {/* ── LISTADO ── */}
           <div style={{ ...css.card, marginTop:12 }}>
             <p style={{ ...css.cardTitle, marginBottom:10 }}>Listado de Árboles <span style={{ fontSize:11, fontWeight:400, color:C.textMuted }}>({arbolesFiltrados.length} de {arboles.length})</span></p>
             <div style={{ overflowX:"auto" }}>
               <table style={css.table}>
-                <thead><tr style={{ background:"#f0fdf4" }}>
+                <thead><tr style={{ background:"#f0f9ff" }}>
                   {["ID","Sector · Surco","Estado","Variedad","Posición en surco","Último tratamiento","Plagas activas"].map(h=>(
                     <th key={h} style={css.th}>{h}</th>
                   ))}
@@ -1034,7 +962,7 @@ export default function MapaPlanoModule() {
                     const plagasActivas=getPlagasActivas(a);
                     return (
                       <tr key={a.ID_ARBOL} className="row-hover" onClick={()=>setArbolSeleccionado(a)}
-                        style={{ cursor:"pointer", background:active?(isDark?"rgba(34,197,94,0.07)":"#f0fdf4"):(isDark?"transparent":"white"), borderBottom:`1px solid ${C.border}` }}>
+                        style={{ cursor:"pointer", background:active?(isDark?"rgba(56,189,248,0.07)":"#f0f9ff"):(isDark?"transparent":"white"), borderBottom:`1px solid ${C.border}` }}>
                         <td style={css.td}><strong style={{ color:C.text }}>{a.ID_ARBOL}</strong></td>
                         <td style={css.td}><span style={{ fontSize:12 }}>{a.NOMBRE_SECTOR}</span>{a.NUMERO_SURCO&&<span style={{ fontSize:11, color:C.textMuted }}> · Surco {a.NUMERO_SURCO}</span>}</td>
                         <td style={css.td}><Badge estado={a.NOMBRE_ESTADO}/></td>
@@ -1059,7 +987,6 @@ export default function MapaPlanoModule() {
           </div>
         </main>
 
-        {/* RIGHT DETAIL PANEL */}
         <aside style={{ ...css.sidebar, maxWidth:230 }}>
           <div className="tour-mapa-detalle" style={css.card}>
             <p style={css.cardTitle}>Detalle del Árbol</p>
@@ -1119,7 +1046,7 @@ export default function MapaPlanoModule() {
                     <p style={{ marginTop:8, fontSize:11, color:C.textMuted, lineHeight:1.6, borderTop: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #f1f5f9", paddingTop:8 }}>{arbolSeleccionado.DESCRIPCION}</p>
                   )}
                   <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:6 }}>
-                    <ActionBtn color="#22c55e" onClick={()=>openModal("actualizar_estado")}>⚡ Actualizar estado</ActionBtn>
+                    <ActionBtn color="#38bdf8" onClick={()=>openModal("actualizar_estado")}>⚡ Actualizar estado</ActionBtn>
                     {["ENFERMO","MUERTO"].includes(est) && <ActionBtn color="#f97316" outline onClick={()=>openModal("registrar_alerta")}>⚠️ Registrar alerta</ActionBtn>}
                     {est==="MUERTO" && <ActionBtn color="#a855f7" outline onClick={()=>openModal("resiembra")}>🌿 Marcar para resiembra</ActionBtn>}
                   </div>
@@ -1130,7 +1057,6 @@ export default function MapaPlanoModule() {
         </aside>
       </div>
 
-      {/* ── MODALS ── */}
       {modal.tipo && (
         <div style={mS.overlay} onClick={closeModal}>
           <div style={mS.modal} onClick={e=>e.stopPropagation()}>
@@ -1177,7 +1103,7 @@ export default function MapaPlanoModule() {
 
             {modal.tipo==="actualizar_estado" && arbolSeleccionado && (
               <form onSubmit={submitActualizarEstado} style={mS.form}>
-                <div style={mS.readonly}>Árbol: <strong style={{ color:"#15803d" }}>{arbolSeleccionado.NOMBRE_ARBOL} · {arbolSeleccionado.NOMBRE_SECTOR}</strong></div>
+                <div style={mS.readonly}>Árbol: <strong style={{ color:"#0284c7" }}>{arbolSeleccionado.NOMBRE_ARBOL} · {arbolSeleccionado.NOMBRE_SECTOR}</strong></div>
                 <FieldLabel>Nuevo estado</FieldLabel>
                 <select style={mS.input} value={estadoForm.id_estado_nuevo} onChange={e=>setEstadoForm(f=>({...f,id_estado_nuevo:e.target.value}))} required>
                   <option value="">Selecciona...</option>
@@ -1241,23 +1167,23 @@ export default function MapaPlanoModule() {
 const makeCss = (isDark) => ({
   root:      { background: isDark ? "#0f1117" : "#f0f4f8", minHeight:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", color: isDark ? "#e2e8f0" : "#1e293b", overflowY:"auto" },
   topBar:    { background: isDark ? "#1a1f2e" : "#fff", borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", padding:"10px 20px", display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", justifyContent:"space-between", position:"sticky", top:0, zIndex:100, boxShadow: isDark ? "0 1px 6px rgba(0,0,0,0.35)" : "0 1px 6px rgba(0,0,0,0.06)" },
-  logoBox:   { width:40, height:40, background:"linear-gradient(135deg,#22c55e,#15803d)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(34,197,94,0.35)" },
+  logoBox:   { width:40, height:40, background:"linear-gradient(135deg,#38bdf8,#0284c7)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(56,189,248,0.35)" },
   tab:       { display:"flex", alignItems:"center", gap:5, padding:"7px 14px", borderRadius:10, border:"1px solid transparent", background:"transparent", fontSize:12, fontWeight:600, cursor:"pointer", color: isDark ? "#64748b" : "#64748b", transition:"all .15s" },
-  tabActive: { background: isDark ? "rgba(34,197,94,0.10)" : "#f0fdf4", color: isDark ? "#86efac" : "#15803d", border: isDark ? "1px solid rgba(34,197,94,0.25)" : "1px solid #bbf7d0" },
+  tabActive: { background: isDark ? "rgba(56,189,248,0.10)" : "#f0f9ff", color: isDark ? "#7dd3fc" : "#0284c7", border: isDark ? "1px solid rgba(56,189,248,0.25)" : "1px solid #bae6fd" },
   fincaSelect:{ height:36, border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid #e2e8f0", borderRadius:10, padding:"0 12px", fontSize:12, background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", color: isDark ? "#e2e8f0" : "#1e293b", outline:"none" },
   statsRow:  { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, padding:"16px 20px 0" },
   layout:    { display:"grid", gridTemplateColumns:"200px 1fr 228px", gap:12, padding:16, alignItems:"start" },
   sidebar:   { display:"flex", flexDirection:"column", gap:10 },
   center:    { display:"flex", flexDirection:"column", minWidth:0 },
   card:      { background: isDark ? "#1a1f2e" : "#fff", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", borderRadius:16, padding:16, boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.35)" : "0 1px 6px rgba(0,0,0,0.05)" },
-  cardTitle: { margin:"0 0 10px", color: isDark ? "#86efac" : "#15803d", fontSize:13, fontWeight:700 },
+  cardTitle: { margin:"0 0 10px", color: isDark ? "#7dd3fc" : "#0284c7", fontSize:13, fontWeight:700 },
   label:     { display:"block", fontWeight:600, fontSize:11, color: isDark ? "#94a3b8" : "#475569", marginBottom:3, marginTop:8 },
   select:    { width:"100%", height:34, border: isDark ? "1.5px solid rgba(255,255,255,0.10)" : "1.5px solid #e2e8f0", borderRadius:8, padding:"0 10px", fontSize:12, background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", color: isDark ? "#e2e8f0" : "#1e293b", outline:"none" },
   clearBtn:  { marginTop:10, width:"100%", padding:"6px 0", fontSize:11, color: isDark ? "#64748b" : "#64748b", background:"transparent", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0", borderRadius:8, cursor:"pointer" },
-  btnPrimary:  { padding:"7px 16px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#22c55e,#16a34a)", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 14px rgba(34,197,94,0.35)", transition:"all .15s" },
+  btnPrimary:  { padding:"7px 16px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#38bdf8,#0ea5e9)", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 14px rgba(56,189,248,0.35)", transition:"all .15s" },
   btnSecondary:{ padding:"7px 14px", borderRadius:10, border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid #e2e8f0", background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#94a3b8" : "#475569", fontSize:12, fontWeight:600, cursor:"pointer" },
   table:     { width:"100%", borderCollapse:"collapse", fontSize:12 },
-  th:        { padding:"9px 10px", textAlign:"left", fontWeight:700, color: isDark ? "#86efac" : "#15803d", fontSize:11, borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", background: isDark ? "rgba(34,197,94,0.05)" : "transparent" },
+  th:        { padding:"9px 10px", textAlign:"left", fontWeight:700, color: isDark ? "#7dd3fc" : "#0284c7", fontSize:11, borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", background: isDark ? "rgba(56,189,248,0.05)" : "transparent" },
   td:        { padding:"9px 10px", borderBottom: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #f1f5f9", verticalAlign:"middle", color: isDark ? "#e2e8f0" : "#1e293b" },
 });
 
@@ -1270,10 +1196,10 @@ const makeMStyle = (isDark) => ({
   closeBtn: { background:"none", border:"none", color: isDark ? "#64748b" : "#94a3b8", cursor:"pointer", fontSize:20, lineHeight:1, padding:4 },
   form:     { padding:20, display:"flex", flexDirection:"column", gap:4 },
   input:    { width:"100%", boxSizing:"border-box", background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", border: isDark ? "1.5px solid rgba(255,255,255,0.10)" : "1.5px solid #e2e8f0", borderRadius:10, padding:"10px 14px", fontSize:13, color: isDark ? "#e2e8f0" : "#1e293b", outline:"none", fontFamily:"inherit" },
-  infoBox:  { background: isDark ? "rgba(34,197,94,0.06)" : "#f0fdf4", border: isDark ? "1px solid rgba(34,197,94,0.20)" : "1px solid #bbf7d0", borderRadius:10, padding:"10px 14px", fontSize:12, color: isDark ? "#94a3b8" : "#475569" },
+  infoBox:  { background: isDark ? "rgba(56,189,248,0.06)" : "#f0f9ff", border: isDark ? "1px solid rgba(56,189,248,0.20)" : "1px solid #bae6fd", borderRadius:10, padding:"10px 14px", fontSize:12, color: isDark ? "#94a3b8" : "#475569" },
   footer:   { display:"flex", justifyContent:"flex-end", gap:10, marginTop:14, paddingTop:14, borderTop: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #f1f5f9" },
   btnCancel:{ padding:"9px 20px", borderRadius:10, border: isDark ? "1.5px solid rgba(255,255,255,0.10)" : "1.5px solid #e2e8f0", background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#94a3b8" : "#475569", fontSize:12, fontWeight:600, cursor:"pointer" },
-  btnOk:    { padding:"9px 24px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#22c55e,#16a34a)", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 14px rgba(34,197,94,.35)" },
+  btnOk:    { padding:"9px 24px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#38bdf8,#0ea5e9)", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 14px rgba(56,189,248,.35)" },
   err:      { margin:"0 20px 0", padding:"10px 14px", background: isDark ? "rgba(239,68,68,0.10)" : "#fef2f2", border: isDark ? "1px solid rgba(239,68,68,0.25)" : "1px solid #fecaca", borderRadius:10, fontSize:12, color: isDark ? "#fca5a5" : "#b91c1c" },
   readonly: { background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", borderRadius:10, padding:12, fontSize:13, color: isDark ? "#94a3b8" : "#475569" },
 });

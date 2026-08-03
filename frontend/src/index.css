@@ -1,15 +1,15 @@
 :root {
-  --verde-profundo:  #1B4D2A;
-  --verde-medio:     #2D7A3E;
-  --verde-salvia:    #4CB968;
-  --verde-menta:     #E8F5E9;
-  --tierra-calida:   #8B6F47;
-  --oro-forestal:    #D4A853;
+  --verde-profundo:  #1B2A4D;
+  --verde-medio:     #2D5A9E;
+  --verde-salvia:    #4C8FB9;
+  --verde-menta:     #E8EDF5;
+  --tierra-calida:   #6B7280;
+  --oro-forestal:    #94A3B8;
   --rojo-alerta:     #8B2E2E;
-  --fondo-claro:     #F2F7F3;
-  --pergamino-verde: #DCEDDF;
+  --fondo-claro:     #F2F4F7;
+  --pergamino-verde: #DCE3ED;
   --grafito:         #4A4A4A;
-  --exito:           #2E7D32;
+  --exito:           #1D4ED8;
   --blanco:          #FFFFFF;
 
   --sidebar-w:       252px;
@@ -21,8 +21,8 @@
   --radius-lg:  18px;
   --radius-xl:  24px;
 
-  --shadow-sm: 0 2px 8px rgba(27,77,42,.06), 0 1px 3px rgba(0,0,0,.04);
-  --shadow-md: 0 8px 24px rgba(27,77,42,.08), 0 3px 8px rgba(0,0,0,.05);
+  --shadow-sm: 0 2px 8px rgba(27,42,77,.06), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-md: 0 8px 24px rgba(27,42,77,.08), 0 3px 8px rgba(0,0,0,.05);
   --shadow-lg: 0 18px 48px rgba(0,0,0,.14), 0 6px 18px rgba(0,0,0,.08);
 
   --transition: 180ms ease;
@@ -44,8 +44,8 @@ body,
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #F2F7F3;
-  background-image: radial-gradient(circle, rgba(27,77,42,.07) 1.5px, transparent 1.5px);
+  background-color: #F2F4F7;
+  background-image: radial-gradient(circle, rgba(27,42,77,.07) 1.5px, transparent 1.5px);
   background-size: 22px 22px;
   color: var(--grafito);
   font-size: 14px;
@@ -106,7 +106,7 @@ svg {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(8, 19, 11, 0.42);
+  background: rgba(8, 11, 19, 0.42);
   backdrop-filter: blur(2px);
 }
 
@@ -122,7 +122,7 @@ svg {
 
 .mobileTopbar {
   height: var(--topbar-h);
-  background: rgba(27, 77, 42, 0.96);
+  background: rgba(27, 42, 77, 0.96);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -162,7 +162,7 @@ svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 14px rgba(212, 168, 83, 0.22);
+  box-shadow: 0 6px 14px rgba(148, 163, 184, 0.22);
 }
 
 .mobileBrandIcon .material-icons {
@@ -217,12 +217,12 @@ svg {
 }
 
 .breadcrumbBtn:hover {
-  background: rgba(212,168,83,.1);
+  background: rgba(148,163,184,.1);
   color: var(--verde-profundo);
 }
 
 .breadcrumbSep {
-  color: rgba(139,111,71,.55);
+  color: rgba(107,114,128,.55);
   font-size: 12px;
 }
 
@@ -251,7 +251,7 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 0;
-  background: linear-gradient(135deg, #0D2B18 0%, #1B4D2A 60%, #245934 100%);
+  background: linear-gradient(135deg, #0D1B2B 0%, #1B2A4D 60%, #243759 100%);
   position: relative;
   overflow: hidden;
 }
@@ -274,7 +274,7 @@ svg {
   position: absolute;
   width: 600px; height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(76,185,104,.08), transparent 70%);
+  background: radial-gradient(circle, rgba(76,104,185,.08), transparent 70%);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -285,7 +285,7 @@ svg {
   background: var(--oro-forestal);
   border-radius: 24px;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 12px 40px rgba(212,168,83,.35), 0 0 0 0 rgba(212,168,83,.4);
+  box-shadow: 0 12px 40px rgba(148,163,184,.35), 0 0 0 0 rgba(148,163,184,.4);
   animation: splashLogoPop .6s cubic-bezier(.22,.68,0,1.4) both,
              splashPulse 2.4s ease 1s infinite;
   position: relative; z-index: 1;
@@ -294,7 +294,7 @@ svg {
 
 .splashLogo .material-icons {
   font-size: 40px;
-  color: #1B4D2A;
+  color: #1B2A4D;
 }
 
 /* Nombre del sistema */
@@ -353,8 +353,8 @@ svg {
   to   { transform: scale(1)  rotate(0deg);  opacity: 1; }
 }
 @keyframes splashPulse {
-  0%, 100% { box-shadow: 0 12px 40px rgba(212,168,83,.35), 0 0 0 0   rgba(212,168,83,.3); }
-  50%       { box-shadow: 0 12px 40px rgba(212,168,83,.35), 0 0 0 16px rgba(212,168,83,.0); }
+  0%, 100% { box-shadow: 0 12px 40px rgba(148,163,184,.35), 0 0 0 0   rgba(148,163,184,.3); }
+  50%       { box-shadow: 0 12px 40px rgba(148,163,184,.35), 0 0 0 16px rgba(148,163,184,.0); }
 }
 @keyframes splashFadeUp {
   from { transform: translateY(12px); opacity: 0; }
@@ -375,7 +375,7 @@ svg {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cfe2d3;
+  background: #cfd8e2;
   border-radius: 999px;
 }
 
@@ -391,7 +391,7 @@ svg {
 /* ── Desktop topbar (campana notificaciones) ── */
 .desktopTopbar {
   height: 44px;
-  background: linear-gradient(135deg, #0D2B18 0%, #1B4D2A 55%, #245934 100%);
+  background: linear-gradient(135deg, #0D1B2B 0%, #1B2A4D 55%, #243759 100%);
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -418,7 +418,7 @@ svg {
   border: 1px solid var(--pergamino-verde);
   border-radius: 20px;
   padding: 18px 20px;
-  box-shadow: 0 8px 24px rgba(27,77,42,.05);
+  box-shadow: 0 8px 24px rgba(27,42,77,.05);
 }
 .chartTitle {
   font-size: 13px; font-weight: 800;
@@ -430,18 +430,19 @@ svg {
    Se activan cuando <html data-theme="dark">
 ══════════════════════════════════════════════════════ */
 [data-theme="dark"] {
-  /* Brand colors — se mantienen pero ligeramente más brillantes */
-  --verde-profundo:  #4ade80;
-  --verde-medio:     #22c55e;
-  --verde-salvia:    #86efac;
-  --verde-menta:     #052e16;
-  --tierra-calida:   #a78a66;
-  --oro-forestal:    #fbbf24;
+  /* Brand colors — azul oscuro y gris */
+  --verde-profundo:  #0f1c3d;
+  --verde-medio:     #1e3a8a;
+  --verde-salvia:    #93c5fd;
+  --verde-menta:     #111827;
+  --tierra-calida:   #9ca3af;
+  --oro-forestal:    #60a5fa;
   --rojo-alerta:     #f87171;
   --fondo-claro:     #0f1117;
-  --pergamino-verde: #1a2d1e;
+  --pergamino-verde: #374151;
   --grafito:         #e2e8f0;
 
+  
   /* Shadows para dark */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.25);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.45), 0 3px 8px rgba(0,0,0,0.30);
@@ -461,7 +462,7 @@ svg {
 /* ── Body dark ── */
 [data-theme="dark"] body {
   background-color: #0f1117;
-  background-image: radial-gradient(circle, rgba(34,197,94,0.04) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(circle, rgba(59,130,246,0.04) 1.5px, transparent 1.5px);
   color: #e2e8f0;
 }
 
@@ -471,7 +472,7 @@ svg {
 
 /* ══ TOPBAR dark ══ */
 [data-theme="dark"] .desktopTopbar {
-  background: linear-gradient(135deg, #0a0f15 0%, #0d1a12 55%, #0f1f15 100%);
+  background: linear-gradient(135deg, #0a0e15 0%, #0d1420 55%, #0f1a2b 100%);
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 [data-theme="dark"] .mobileTopbar {
@@ -484,10 +485,10 @@ svg {
   background: rgba(15,17,23,0.92);
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-[data-theme="dark"] .breadcrumbCurrent { color: #86efac; }
+[data-theme="dark"] .breadcrumbCurrent { color: #93c5fd; }
 [data-theme="dark"] .breadcrumbSep     { color: rgba(255,255,255,0.25); }
 [data-theme="dark"] .breadcrumbBtn     { color: #94a3b8; }
-[data-theme="dark"] .breadcrumbBtn:hover { background: rgba(34,197,94,0.08); color: #86efac; }
+[data-theme="dark"] .breadcrumbBtn:hover { background: rgba(59,130,246,0.08); color: #93c5fd; }
 
 /* ══ CHART CARD dark ══ */
 [data-theme="dark"] .chartCard {
@@ -495,7 +496,7 @@ svg {
   border-color: rgba(255,255,255,0.07);
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
-[data-theme="dark"] .chartTitle { color: #86efac; }
+[data-theme="dark"] .chartTitle { color: #93c5fd; }
 
 /* ══ ACCESO DENEGADO dark ══ */
 [data-theme="dark"] .accesoIcon { background: #2d1515 !important; }
@@ -518,9 +519,9 @@ svg {
 .themeToggle .material-icons { font-size: 16px; transition: transform 0.4s; }
 [data-theme="dark"] .themeToggle .material-icons { transform: rotate(20deg); }
 
-/* ══ LOGO MOBILE — amarillo → verde ══ */
+/* ══ LOGO MOBILE ══ */
 .mobileBrandIcon {
-  background: linear-gradient(135deg, #16a34a, #15803d) !important;
-  box-shadow: 0 6px 14px rgba(22,163,74,0.28) !important;
+  background: linear-gradient(135deg, #2563eb, #1e40af) !important;
+  box-shadow: 0 6px 14px rgba(37,99,235,0.28) !important;
 }
 .mobileBrandIcon .material-icons { color: #fff !important; }
