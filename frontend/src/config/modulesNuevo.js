@@ -31,6 +31,7 @@
     asistencia_id: 'Asistencia',
     intento: 'Intento',
     url_foto: 'Foto',
+    cliente_nombre: 'Cliente',
     observacion: 'Observación',
     campo_modificado: 'Campo modificado',
     valor_anterior: 'Valor anterior',
@@ -48,7 +49,7 @@
 
   export const HIDDEN_COLS = new Set([
     'id',
-    'created_at', 'fecha_creacion',
+    'created_at', 'fecha_creacion', 'correo',
     'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico',
   ]);
 

@@ -15,8 +15,16 @@ const listar = async (req, res) => {
     conn = await getConnection();
 
     const query = cliente_id
-      ? `SELECT * FROM supervisores WHERE estado = 'ACTIVO' AND cliente_id = $1 ORDER BY nombre`
-      : `SELECT * FROM supervisores WHERE estado = 'ACTIVO' ORDER BY nombre`;
+      ? `SELECT s.*, c.nombre AS cliente_nombre
+         FROM supervisores s
+         LEFT JOIN clientes c ON c.id = s.cliente_id
+         WHERE s.estado = 'ACTIVO' AND s.cliente_id = $1
+         ORDER BY s.nombre`
+      : `SELECT s.*, c.nombre AS cliente_nombre
+         FROM supervisores s
+         LEFT JOIN clientes c ON c.id = s.cliente_id
+         WHERE s.estado = 'ACTIVO'
+         ORDER BY s.nombre`;
 
     const params = cliente_id ? [Number(cliente_id)] : [];
 
@@ -28,7 +36,6 @@ const listar = async (req, res) => {
     await closeConnection(conn);
   }
 };
-
 
 const obtenerPorId = async (req, res) => {
   const { id_supervisor } = req.params;

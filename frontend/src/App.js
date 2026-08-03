@@ -66,6 +66,7 @@ const MODULES_CONFIG = {
     endpoint: "/asistencia",
     fields: [
       { name: "id_empleado", label: "Empleado", type: "select", required: true, optionsEndpoint: "/empleado", optionValue: "id", optionLabel: "nombre_completo" },
+      { name: "id_supervisor", label: "Supervisor", type: "select", optionsEndpoint: "/supervisor", optionValue: "id", optionLabel: "nombre_completo" },
       { name: "fecha", label: "Fecha", type: "date", required: true },
       { name: "hora_entrada", label: "Hora de entrada", type: "text" },
       { name: "hora_salida", label: "Hora de salida", type: "text" },
