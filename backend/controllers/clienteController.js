@@ -12,7 +12,13 @@ const listar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const result = await conn.query(`SELECT * FROM clientes WHERE estado = 'ACTIVO' ORDER BY nombre`);
+    const result = await conn.query(
+      `SELECT c.*, s.nombre AS supervisor_nombre
+       FROM clientes c
+       LEFT JOIN supervisores s ON s.id = c.supervisor_id
+       WHERE c.estado = 'ACTIVO'
+       ORDER BY c.nombre`
+    );
     res.status(200).json({ ok: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
@@ -20,6 +26,7 @@ const listar = async (req, res) => {
     await closeConnection(conn);
   }
 };
+
 
 const obtenerPorId = async (req, res) => {
   const { id_cliente } = req.params;

@@ -32,6 +32,7 @@
     intento: 'Intento',
     url_foto: 'Foto',
     cliente_nombre: 'Cliente',
+    supervisor_nombre: 'Supervisor',
     observacion: 'Observación',
     campo_modificado: 'Campo modificado',
     valor_anterior: 'Valor anterior',
@@ -112,14 +113,24 @@
       ],
     },
 
-    clientes: {
+  clientes: {
       title: 'Clientes',
       endpoint: '/cliente',
       icon: 'business',
       fields: [
         { name: 'nombre', label: 'Nombre', type: 'text', required: true, onlyText: true, minLength: 3 },
+        {
+          name: 'supervisor_id',
+          label: 'Supervisor',
+          type: 'remote-select',
+          optionSource: '/supervisor',
+          optionValue: 'id',
+          optionLabel: 'nombre',
+        },
       ],
     },
+
+    
 
     empleados: {
       title: 'Empleados',
