@@ -9,12 +9,13 @@ const SECRET = process.env.JWT_SECRET || 'gestion_arboles_secret_2024';
 const generarToken = (usuario) => {
   return jwt.sign(
     {
-      id:       usuario.ID_USUARIO ?? usuario.id_usuario,
-      username: usuario.USERNAME   ?? usuario.username,
-      rol_id:   usuario.ROL_ID     ?? usuario.rol_id ?? 3,
+      id:            usuario.ID_USUARIO ?? usuario.id_usuario,
+      username:      usuario.USERNAME   ?? usuario.username,
+      rol_id:        usuario.ROL_ID     ?? usuario.rol_id ?? 3,
+      supervisor_id: usuario.SUPERVISOR_ID ?? usuario.supervisor_id ?? null,
     },
     SECRET,
-    { expiresIn: '8h' }  // sesión de 8 horas
+    { expiresIn: '8h' }
   );
 };
 

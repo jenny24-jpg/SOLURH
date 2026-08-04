@@ -31,30 +31,28 @@ const reglasLogin = [
 ];
 
 // ── USUARIO — crear / actualizar ──────────────────────────────
+// ── USUARIO — crear / actualizar ──────────────────────────────
 const reglasUsuario = [
-  body('username')
+  body('usuario')
     .trim()
-    .notEmpty().withMessage('El username es requerido')
-    .isLength({ min: 3, max: 80 }).withMessage('El username debe tener entre 3 y 80 caracteres')
-    .matches(/^[a-zA-Z0-9_.-]+$/).withMessage('El username solo puede contener letras, numeros, guiones y puntos'),
-  body('email')
+    .notEmpty().withMessage('El usuario es requerido')
+    .isLength({ min: 3, max: 80 }).withMessage('El usuario debe tener entre 3 y 80 caracteres')
+    .matches(/^[a-zA-Z0-9]+$/).withMessage('El usuario solo puede contener letras y números'),
+  body('nombre_completo')
+    .trim()
+    .notEmpty().withMessage('El nombre completo es requerido')
+    .isLength({ min: 3, max: 150 }).withMessage('El nombre completo debe tener entre 3 y 150 caracteres'),
+  body('rol')
     .optional({ nullable: true, checkFalsy: true })
-    .isEmail().withMessage('El email no tiene un formato valido')
-    .isLength({ max: 150 }).withMessage('El email no puede superar 150 caracteres'),
-  body('telefono')
+    .isIn(['admin', 'supervisor', 'empleado']).withMessage('El rol debe ser admin, supervisor o empleado'),
+  body('estado')
     .optional({ nullable: true, checkFalsy: true })
-    .matches(/^[\d\s\+\-\(\)]+$/).withMessage('El telefono solo puede contener numeros y caracteres validos')
-    .isLength({ max: 20 }).withMessage('El telefono no puede superar 20 caracteres'),
-  body('rol_id')
-    .notEmpty().withMessage('El rol es requerido')
-    .isInt({ min: 1 }).withMessage('El rol debe ser un numero valido'),
-  body('nombres')
+    .isIn(['activo', 'inactivo']).withMessage('El estado debe ser activo o inactivo'),
+  body('supervisor_id')
     .optional({ nullable: true, checkFalsy: true })
-    .isLength({ max: 100 }).withMessage('Los nombres no pueden superar 100 caracteres'),
-  body('apellidos')
-    .optional({ nullable: true, checkFalsy: true })
-    .isLength({ max: 100 }).withMessage('Los apellidos no pueden superar 100 caracteres'),
+    .isInt({ min: 1 }).withMessage('El supervisor debe ser un número válido'),
 ];
+
 
 // ── CAMBIAR CONTRASENA ────────────────────────────────────────
 const reglasPassword = [

@@ -4,14 +4,15 @@ import s from './GestionUsuarios.module.css';
 
 import { API, apiFetch } from '../context/AuthContext';
 
+// Roles reales del sistema (coinciden con ROL_A_ID en el backend)
 const ROLES = [
-  { id: 1, label: 'Super Administrador', color: '#8B2E2E', bg: '#FFEBEE' },
-  { id: 2, label: 'Administrador',       color: '#1B4D2A', bg: '#E8F5E9' },
-  { id: 3, label: 'Técnico de campo',    color: '#8B6F47', bg: '#FFF8E1' },
+  { valor: 'admin',      id: 1, label: 'Administrador', color: '#8B2E2E', bg: '#FFEBEE' },
+  { valor: 'supervisor', id: 2, label: 'Supervisor',     color: '#1B2A4D', bg: '#E8EDF5' },
+  { valor: 'empleado',   id: 3, label: 'Empleado',       color: '#6B7280', bg: '#F3F4F6' },
 ];
 
-function getRol(id) {
-  return ROLES.find(r => r.id === Number(id)) || ROLES[2];
+function getRolPorValor(valor) {
+  return ROLES.find(r => r.valor === String(valor || '').toLowerCase()) || ROLES[2];
 }
 
 function get(obj, ...keys) {
@@ -55,8 +56,8 @@ export default function GestionUsuarios({ onBack }) {
   const handleResetPassword = async () => {
     if (!resetModal) return;
     try {
-      const adminNombre = get(usuario, 'NOMBRES', 'nombres', 'USERNAME', 'username') || 'Admin';
-      const adminId     = get(usuario, 'ID_USUARIO', 'id_usuario');
+      const adminNombre = get(usuario, 'nombre_completo', 'usuario') || 'Admin';
+      const adminId     = get(usuario, 'id');
       const res  = await apiFetch(`${API}/usuarios/${resetModal.id}/resetear-password`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,12 +78,12 @@ export default function GestionUsuarios({ onBack }) {
 
   const filtered = search.trim()
     ? usuarios.filter(u =>
-        [get(u,'NOMBRES','nombres'), get(u,'USERNAME','username'), get(u,'EMAIL','email')]
+        [get(u,'nombre_completo'), get(u,'usuario')]
           .some(v => String(v||'').toLowerCase().includes(search.toLowerCase()))
       )
     : usuarios;
 
-  const myId = get(usuario, 'ID_USUARIO', 'id_usuario');
+  const myId = get(usuario, 'id');
 
   return (
     <div className={s.root}>
@@ -103,7 +104,7 @@ export default function GestionUsuarios({ onBack }) {
               <span className="material-icons">admin_panel_settings</span>
             </div>
             <div>
-              <p className={s.panelLabel}>SUPER ADMINISTRADOR</p>
+              <p className={s.panelLabel}>ADMINISTRADOR</p>
               <h1 className={s.pageTitle}>Gestión de usuarios</h1>
               <p className={s.pageSubtitle}>Crea, edita y administra los accesos del sistema.</p>
             </div>
@@ -128,7 +129,7 @@ export default function GestionUsuarios({ onBack }) {
           <div className={s.searchWrap}>
             <span className="material-icons">search</span>
             <input
-              placeholder="Buscar por nombre, usuario o correo..."
+              placeholder="Buscar por nombre o usuario..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -140,20 +141,17 @@ export default function GestionUsuarios({ onBack }) {
           </div>
           <div className={s.statsWrap}>
             {ROLES.map(r => (
-              <div key={r.id} className={s.rolBadge} style={{ background: r.bg, color: r.color }}>
-                <span>{usuarios.filter(u => {
-                  const rolVal = u?.ROL_ID ?? u?.rol_id ?? u?.ID_ROL ?? u?.id_rol;
-                  return Number(rolVal) === r.id;
-                }).length}</span>
-                {r.label.split(' ')[0]}
+              <div key={r.valor} className={s.rolBadge} style={{ background: r.bg, color: r.color }}>
+                <span>{usuarios.filter(u => String(get(u,'rol')||'').toLowerCase() === r.valor).length}</span>
+                {r.label}
               </div>
             ))}
-            <div className={s.rolBadge} style={{ background:'#E8F5E9', color:'#1B4D2A' }}>
-              <span>{usuarios.filter(u => (u?.ESTADO ?? u?.estado) === 'ACTIVO').length}</span>
+            <div className={s.rolBadge} style={{ background:'#E8EDF5', color:'#1B2A4D' }}>
+              <span>{usuarios.filter(u => String(get(u,'estado')||'').toLowerCase() === 'activo').length}</span>
               Activos
             </div>
             <div className={s.rolBadge} style={{ background:'#FFEBEE', color:'#8B2E2E' }}>
-              <span>{usuarios.filter(u => (u?.ESTADO ?? u?.estado) === 'INACTIVO').length}</span>
+              <span>{usuarios.filter(u => String(get(u,'estado')||'').toLowerCase() === 'inactivo').length}</span>
               Inactivos
             </div>
           </div>
@@ -192,44 +190,41 @@ export default function GestionUsuarios({ onBack }) {
               <thead>
                 <tr>
                   <th>Usuario</th>
-                  <th>Nombre</th>
-                  <th>Correo</th>
-                  <th>Teléfono</th>
+                  <th>Nombre completo</th>
                   <th>Rol</th>
+                  <th>Supervisor vinculado</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((u, i) => {
-                  const id     = get(u,'ID_USUARIO','id_usuario');
-                  const rolId  = u?.ROL_ID ?? u?.rol_id ?? u?.ID_ROL ?? u?.id_rol;
-                  const rol    = getRol(rolId);
-                  const estado = get(u,'ESTADO','estado') || 'ACTIVO';
-                  const esYo   = String(id) === String(myId);
+                  const id       = get(u,'id');
+                  const rolVal   = get(u,'rol');
+                  const rol      = getRolPorValor(rolVal);
+                  const estado   = (get(u,'estado') || 'activo').toUpperCase();
+                  const esYo     = String(id) === String(myId);
+                  const supNombre = get(u,'supervisor_nombre');
                   return (
                     <tr key={id} className={`${i%2===0?s.rowE:s.rowO} ${esYo?s.rowMe:''}`}>
                       <td>
                         <div className={s.userCell}>
                           <div className={s.avatar} style={{ background: rol.bg, color: rol.color }}>
-                            {String(get(u,'NOMBRES','nombres')||get(u,'USERNAME','username')||'?')[0].toUpperCase()}
+                            {String(get(u,'nombre_completo')||get(u,'usuario')||'?')[0].toUpperCase()}
                           </div>
                           <span className={s.username}>
-                            {get(u,'USERNAME','username')}
+                            {get(u,'usuario')}
                             {esYo && <span className={s.meTag}>Tú</span>}
                           </span>
                         </div>
                       </td>
-                      <td>
-                        {[get(u,'NOMBRES','nombres'), get(u,'APELLIDOS','apellidos')].filter(Boolean).join(' ') || '—'}
-                      </td>
-                      <td>{get(u,'EMAIL','email') || '—'}</td>
-                      <td>{get(u,'TELEFONO','telefono') || '—'}</td>
+                      <td>{get(u,'nombre_completo') || '—'}</td>
                       <td>
                         <span className={s.rolPill} style={{ background: rol.bg, color: rol.color }}>
                           {rol.label}
                         </span>
                       </td>
+                      <td>{rolVal === 'supervisor' ? (supNombre || '—') : '—'}</td>
                       <td>
                         <span className={estado === 'ACTIVO' ? s.estadoActivo : s.estadoInactivo}>
                           {estado}
@@ -243,10 +238,10 @@ export default function GestionUsuarios({ onBack }) {
                           {!esYo && (
                             <button
                               className={s.actionEdit}
-                              onClick={() => setResetModal({ id, username: get(u,'USERNAME','username') || `#${id}` })}
+                              onClick={() => setResetModal({ id, username: get(u,'usuario') || `#${id}` })}
                               title="Resetear contraseña"
                               type="button"
-                              style={{ background:'#FFF8E1', color:'#D4A853', border:'1px solid #FFE082' }}
+                              style={{ background:'#F1F5F9', color:'#94A3B8', border:'1px solid #E2E8F0' }}
                             >
                               <span className="material-icons">lock_reset</span>
                             </button>
@@ -307,8 +302,8 @@ export default function GestionUsuarios({ onBack }) {
       {resetModal !== null && (
         <div className={s.overlay} onClick={() => setResetModal(null)}>
           <div className={s.confirmModal} onClick={e => e.stopPropagation()}>
-            <div className={s.confirmIcon} style={{ background:'#FFF8E1' }}>
-              <span className="material-icons" style={{ color:'#D4A853' }}>lock_reset</span>
+            <div className={s.confirmIcon} style={{ background:'#F1F5F9' }}>
+              <span className="material-icons" style={{ color:'#94A3B8' }}>lock_reset</span>
             </div>
             <h3>Resetear contraseña</h3>
             <p>Se generará una contraseña temporal para <strong>{resetModal.username}</strong>. La contraseña actual quedará invalidada.</p>
@@ -322,7 +317,7 @@ export default function GestionUsuarios({ onBack }) {
               <button
                 onClick={handleResetPassword}
                 type="button"
-                style={{ background:'#D4A853', color:'#fff', border:'none', borderRadius:10, padding:'9px 16px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
+                style={{ background:'#94A3B8', color:'#fff', border:'none', borderRadius:10, padding:'9px 16px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
               >
                 <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(255,255,255,0.22)', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                   <span className="material-icons" style={{ fontSize:14 }}>lock_reset</span>
@@ -338,30 +333,30 @@ export default function GestionUsuarios({ onBack }) {
       {resetResult !== null && (
         <div className={s.overlay} onClick={() => setResetResult(null)}>
           <div className={s.confirmModal} onClick={e => e.stopPropagation()}>
-            <div className={s.confirmIcon} style={{ background:'#E8F5E9' }}>
-              <span className="material-icons" style={{ color:'#2D7A3E' }}>check_circle</span>
+            <div className={s.confirmIcon} style={{ background:'#E8EDF5' }}>
+              <span className="material-icons" style={{ color:'#2D5A9E' }}>check_circle</span>
             </div>
             <h3>¡Contraseña generada!</h3>
             <p>Usuario: <strong>{resetResult.usuario}</strong></p>
-            <div style={{ background:'#F2F7F3', border:'2px solid #DCEDDF', borderRadius:10, padding:'14px 18px', margin:'12px 0 8px', textAlign:'center' }}>
-              <p style={{ fontSize:9, color:'#8B6F47', marginBottom:6, textTransform:'uppercase', letterSpacing:'.6px', fontWeight:700 }}>Contraseña temporal</p>
-              <p style={{ fontSize:24, fontWeight:800, color:'#1B4D2A', letterSpacing:4, fontFamily:'monospace' }}>{resetResult.password_temporal}</p>
+            <div style={{ background:'#F2F4F7', border:'2px solid #DCE3ED', borderRadius:10, padding:'14px 18px', margin:'12px 0 8px', textAlign:'center' }}>
+              <p style={{ fontSize:9, color:'#6B7280', marginBottom:6, textTransform:'uppercase', letterSpacing:'.6px', fontWeight:700 }}>Contraseña temporal</p>
+              <p style={{ fontSize:24, fontWeight:800, color:'#1B2A4D', letterSpacing:4, fontFamily:'monospace' }}>{resetResult.password_temporal}</p>
             </div>
             <p style={{ fontSize:11, color:'#8B2E2E', marginBottom:16 }}>Copia esta contraseña ahora, no se volverá a mostrar.</p>
             <div className={s.confirmBtns}>
               <button
                 type="button"
-                style={{ background:'#E8F5E9', color:'#1B4D2A', border:'1px solid #DCEDDF', borderRadius:10, padding:'9px 14px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
+                style={{ background:'#E8EDF5', color:'#1B2A4D', border:'1px solid #DCE3ED', borderRadius:10, padding:'9px 14px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
                 onClick={() => { try { navigator.clipboard.writeText(resetResult.password_temporal); } catch(_) {} }}
               >
-                <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(27,77,42,0.10)', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(27,42,77,0.10)', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                   <span className="material-icons" style={{ fontSize:14 }}>content_copy</span>
                 </span>
                 Copiar
               </button>
               <button
                 type="button"
-                style={{ background:'#2D7A3E', color:'#fff', border:'none', borderRadius:10, padding:'9px 16px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
+                style={{ background:'#2D5A9E', color:'#fff', border:'none', borderRadius:10, padding:'9px 16px', cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}
                 onClick={() => setResetResult(null)}
               >
                 <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(255,255,255,0.22)', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
@@ -381,173 +376,115 @@ export default function GestionUsuarios({ onBack }) {
 // ── Modal formulario usuario ──────────────────────
 function ModalUsuario({ editItem, onClose, onSaved }) {
   const isEdit = !!editItem;
-  const get2   = (k1, k2) => editItem?.[k1] ?? editItem?.[k2] ?? '';
 
   const [form, setForm] = useState({
-    username:  get2('USERNAME','username'),
-    password:  '',
-    nombres:   get2('NOMBRES','nombres'),
-    apellidos: get2('APELLIDOS','apellidos'),
-    email:     get2('EMAIL','email'),
-    telefono:  get2('TELEFONO','telefono'),
-    rol_id:    get2('ROL_ID','rol_id') || 3,
-    estado:    get2('ESTADO','estado') || 'ACTIVO',
+    usuario:         editItem?.usuario || '',
+    password:        '',
+    nombre_completo: editItem?.nombre_completo || '',
+    rol:             editItem?.rol || 'empleado',
+    estado:          (editItem?.estado || 'activo'),
+    supervisor_id:   editItem?.supervisor_id || '',
   });
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState('');
-  const [verPass, setVerPass] = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState('');
+  const [verPass,     setVerPass]     = useState(false);
+  const [supervisores, setSupervisores] = useState([]);
+  const [loadingSup,  setLoadingSup]  = useState(false);
 
- const set = (k, v) => {
+  // Cargar lista de supervisores cuando el rol elegido sea "supervisor"
+  useEffect(() => {
+    if (form.rol !== 'supervisor') return;
+    let cancelado = false;
+    setLoadingSup(true);
+    apiFetch(`${API}/supervisor`)
+      .then(r => r.json())
+      .then(json => {
+        if (!cancelado) setSupervisores(Array.isArray(json.data) ? json.data : []);
+      })
+      .catch(() => { if (!cancelado) setSupervisores([]); })
+      .finally(() => { if (!cancelado) setLoadingSup(false); });
+    return () => { cancelado = true; };
+  }, [form.rol]);
 
-  // Usuario: solo letras y números
-  if (k === 'username') {
-    if (!/^[A-Za-z0-9]*$/.test(v)) return;
-  }
-
-  // Nombres y apellidos: solo letras
-  if (k === 'nombres' || k === 'apellidos') {
-    if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*$/.test(v)) return;
-  }
-
-  // Teléfono: solo números
-  if (k === 'telefono') {
-    if (!/^\d*$/.test(v)) return;
-  }
-
-  // Correo electrónico
-if (k === 'email') {
-  if (!/^[A-Za-z0-9@._-]*$/.test(v)) return;
-}
-
-  setForm(f => ({ ...f, [k]: v }));
-  setError('');
-};
+  const set = (k, v) => {
+    if (k === 'usuario') {
+      if (!/^[A-Za-z0-9]*$/.test(v)) return;
+    }
+    if (k === 'nombre_completo') {
+      if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*$/.test(v)) return;
+    }
+    setForm(f => ({ ...f, [k]: v }));
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // Usuario obligatorio
-  if (!form.username.trim()) {
-    setError('El nombre de usuario es obligatorio');
-    return;
-  }
-
-  // Usuario válido
-  if (!/^[A-Za-z0-9]+$/.test(form.username)) {
-    setError('El usuario solo puede contener letras y números');
-    return;
-  }
-
-  // Contraseña
-  if (!isEdit) {
-
-    if (!form.password) {
-      setError('La contraseña es obligatoria');
+    if (!form.usuario.trim()) {
+      setError('El nombre de usuario es obligatorio');
+      return;
+    }
+    if (!/^[A-Za-z0-9]+$/.test(form.usuario)) {
+      setError('El usuario solo puede contener letras y números');
       return;
     }
 
-    if (form.password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+    if (!isEdit) {
+      if (!form.password) {
+        setError('La contraseña es obligatoria');
+        return;
+      }
+      if (form.password.length < 6) {
+        setError('La contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+    }
+
+    if (!form.nombre_completo.trim() || form.nombre_completo.trim().length < 3) {
+      setError('El nombre completo es obligatorio (mínimo 3 caracteres)');
       return;
     }
 
-    if (!/[A-Z]/.test(form.password)) {
-      setError('La contraseña debe contener al menos una mayúscula');
+    if (form.rol === 'supervisor' && !form.supervisor_id) {
+      setError('Debes seleccionar a qué supervisor pertenece este usuario');
       return;
     }
 
-    if (!/[a-z]/.test(form.password)) {
-      setError('La contraseña debe contener al menos una minúscula');
-      return;
+    setSaving(true);
+    setError('');
+
+    try {
+      const body = {
+        usuario: form.usuario.trim(),
+        nombre_completo: form.nombre_completo.trim(),
+        rol: form.rol,
+        estado: form.estado,
+        supervisor_id: form.rol === 'supervisor' ? Number(form.supervisor_id) : null,
+      };
+      if (!isEdit) body.password = form.password;
+
+      const id  = isEdit ? editItem?.id : null;
+      const url = isEdit ? `${API}/usuarios/${id}` : `${API}/usuarios`;
+
+      const res = await apiFetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (data.ok || data.success) {
+        onSaved();
+      } else {
+        setError(data.mensaje || data.message || 'Error al guardar');
+      }
+    } catch {
+      setError('Error de conexión');
+    } finally {
+      setSaving(false);
     }
-
-    if (!/[0-9]/.test(form.password)) {
-      setError('La contraseña debe contener al menos un número');
-      return;
-    }
-  }
-
-  // Nombres
-  if (
-    form.nombres &&
-    !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(form.nombres)
-  ) {
-    setError('Los nombres solo permiten letras');
-    return;
-  }
-
-  // Apellidos
-  if (
-    form.apellidos &&
-    !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(form.apellidos)
-  ) {
-    setError('Los apellidos solo permiten letras');
-    return;
-  }
-
-  // Correo
-  if (
-    form.email &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
-  ) {
-    setError('Debes ingresar un correo válido');
-    return;
-  }
-
-  // Teléfono
-  if (
-    form.telefono &&
-    !/^\d+$/.test(form.telefono)
-  ) {
-    setError('El teléfono solo permite números');
-    return;
-  }
-
-  setSaving(true);
-  setError('');
-
-  try {
-
-    const body = { ...form };
-
-    if (!isEdit) body.password_hash = form.password;
-
-    delete body.password;
-
-    const id  = isEdit
-      ? (editItem?.ID_USUARIO ?? editItem?.id_usuario)
-      : null;
-
-    const url = isEdit
-      ? `${API}/usuarios/${id}`
-      : `${API}/usuarios`;
-
-    const res = await apiFetch(url, {
-      method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-
-    if (data.ok || data.success) {
-      onSaved();
-    } else {
-      setError(data.mensaje || data.message || 'Error al guardar');
-    }
-
-  } catch {
-
-    setError('Error de conexión');
-
-  } finally {
-
-    setSaving(false);
-
-  }
-};
+  };
 
   return (
     <div className={s.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -578,28 +515,50 @@ if (k === 'email') {
               <div className={s.rolOptions}>
                 {ROLES.map(r => (
                   <label
-                    key={r.id}
-                    className={`${s.rolOption} ${Number(form.rol_id) === r.id ? s.rolOptionActive : ''}`}
-                    style={Number(form.rol_id) === r.id ? { borderColor: r.color, background: r.bg } : {}}
+                    key={r.valor}
+                    className={`${s.rolOption} ${form.rol === r.valor ? s.rolOptionActive : ''}`}
+                    style={form.rol === r.valor ? { borderColor: r.color, background: r.bg } : {}}
                   >
                     <input
-                      type="radio" name="rol_id" value={r.id}
-                      checked={Number(form.rol_id) === r.id}
-                      onChange={() => set('rol_id', r.id)}
+                      type="radio" name="rol" value={r.valor}
+                      checked={form.rol === r.valor}
+                      onChange={() => set('rol', r.valor)}
                     />
-                    <span className="material-icons" style={{ color: Number(form.rol_id) === r.id ? r.color : 'var(--tierra-calida)', fontSize:18 }}>
-                      {r.id === 1 ? 'security' : r.id === 2 ? 'admin_panel_settings' : 'engineering'}
+                    <span className="material-icons" style={{ color: form.rol === r.valor ? r.color : 'var(--tierra-calida)', fontSize:18 }}>
+                      {r.valor === 'admin' ? 'security' : r.valor === 'supervisor' ? 'supervisor_account' : 'engineering'}
                     </span>
                     <div>
-                      <p style={{ fontSize:12, fontWeight:700, color: Number(form.rol_id) === r.id ? r.color : 'var(--verde-profundo)' }}>{r.label}</p>
+                      <p style={{ fontSize:12, fontWeight:700, color: form.rol === r.valor ? r.color : 'var(--verde-profundo)' }}>{r.label}</p>
                       <p style={{ fontSize:10, color:'var(--tierra-calida)' }}>
-                        {r.id===1 ? 'Acceso total + gestión de usuarios' : r.id===2 ? 'Acceso a todos los módulos' : 'Acceso operativo'}
+                        {r.valor==='admin' ? 'Acceso total al sistema' : r.valor==='supervisor' ? 'Solo ve los datos de sus clientes' : 'Acceso operativo básico'}
                       </p>
                     </div>
                   </label>
                 ))}
               </div>
             </div>
+
+            {form.rol === 'supervisor' && (
+              <div className={s.fieldWrap} style={{ marginBottom: 14 }}>
+                <label className={s.fieldLabel}>Supervisor vinculado <span className={s.req}>*</span></label>
+                <div className={s.field}>
+                  <span className="material-icons">supervisor_account</span>
+                  <select
+                    value={form.supervisor_id}
+                    onChange={e => set('supervisor_id', e.target.value)}
+                    style={{ flex:1, border:'none', background:'transparent', outline:'none', fontSize:13, padding:'12px 0' }}
+                  >
+                    <option value="">{loadingSup ? 'Cargando...' : 'Selecciona...'}</option>
+                    {supervisores.map(sv => (
+                      <option key={sv.id} value={sv.id}>{sv.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <span className={s.hint || ''} style={{ fontSize:11, color:'var(--tierra-calida)' }}>
+                  Este usuario solo verá los empleados, asistencias y clientes de este supervisor.
+                </span>
+              </div>
+            )}
 
             <div className={s.formGrid}>
               <div className={s.fieldWrap}>
@@ -609,7 +568,7 @@ if (k === 'email') {
                 </label>
                 <div className={`${s.field} ${isEdit ? s.fieldDisabled : ''}`}>
                   <span className="material-icons">alternate_email</span>
-                  <input type="text" value={form.username} onChange={e => set('username', e.target.value)} disabled={isEdit} placeholder="nombre_usuario" />
+                  <input type="text" value={form.usuario} onChange={e => set('usuario', e.target.value)} disabled={isEdit} placeholder="nombre_usuario" />
                 </div>
               </div>
 
@@ -627,34 +586,10 @@ if (k === 'email') {
               )}
 
               <div className={s.fieldWrap}>
-                <label className={s.fieldLabel}>Nombres</label>
+                <label className={s.fieldLabel}>Nombre completo</label>
                 <div className={s.field}>
                   <span className="material-icons">person_outline</span>
-                  <input type="text" value={form.nombres} onChange={e => set('nombres', e.target.value)} placeholder="Nombres" />
-                </div>
-              </div>
-
-              <div className={s.fieldWrap}>
-                <label className={s.fieldLabel}>Apellidos</label>
-                <div className={s.field}>
-                  <span className="material-icons">person_outline</span>
-                  <input type="text" value={form.apellidos} onChange={e => set('apellidos', e.target.value)} placeholder="Apellidos" />
-                </div>
-              </div>
-
-              <div className={s.fieldWrap}>
-                <label className={s.fieldLabel}>Correo electrónico</label>
-                <div className={s.field}>
-                  <span className="material-icons">email</span>
-                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@ejemplo.com" />
-                </div>
-              </div>
-
-              <div className={s.fieldWrap}>
-                <label className={s.fieldLabel}>Teléfono</label>
-                <div className={s.field}>
-                  <span className="material-icons">phone</span>
-                  <input type="tel" value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="Número de teléfono" />
+                  <input type="text" value={form.nombre_completo} onChange={e => set('nombre_completo', e.target.value)} placeholder="Nombre completo" />
                 </div>
               </div>
 
@@ -663,16 +598,16 @@ if (k === 'email') {
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={form.estado === 'ACTIVO'}
+                  aria-checked={form.estado.toLowerCase() === 'activo'}
                   aria-label="Cambiar estado del usuario"
-                  onClick={() => set('estado', form.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO')}
-                  className={`${s.estadoToggle} ${form.estado === 'ACTIVO' ? s.estadoToggleOn : s.estadoToggleOff}`}
+                  onClick={() => set('estado', form.estado.toLowerCase() === 'activo' ? 'inactivo' : 'activo')}
+                  className={`${s.estadoToggle} ${form.estado.toLowerCase() === 'activo' ? s.estadoToggleOn : s.estadoToggleOff}`}
                 >
                   <span className={s.estadoSwitch}>
                     <span className={s.estadoSwitchKnob} />
                   </span>
                   <span className={s.estadoToggleText}>
-                    {form.estado === 'ACTIVO' ? 'Activo' : 'Inactivo'}
+                    {form.estado.toLowerCase() === 'activo' ? 'Activo' : 'Inactivo'}
                   </span>
                 </button>
               </div>

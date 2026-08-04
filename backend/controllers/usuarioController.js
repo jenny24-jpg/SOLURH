@@ -40,7 +40,12 @@ const login = async (req, res) => {
     }
 
     const rol_id = rolTextoAId(fila.rol);
-    const token = generarToken({ id_usuario: fila.id, username: fila.usuario, rol_id });
+    const token = generarToken({
+      id_usuario: fila.id,
+      username: fila.usuario,
+      rol_id,
+      supervisor_id: fila.supervisor_id ?? null,
+    });
 
     res.status(200).json({
       ok: true,
@@ -51,6 +56,7 @@ const login = async (req, res) => {
         nombre_completo: fila.nombre_completo,
         rol: fila.rol,
         rol_id,
+        supervisor_id: fila.supervisor_id ?? null,
       },
     });
   } catch (err) {
@@ -65,8 +71,11 @@ const listar = async (req, res) => {
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `SELECT id, usuario, nombre_completo, rol, estado, fecha_creacion
-       FROM usuarios ORDER BY nombre_completo`
+      `SELECT u.id, u.usuario, u.nombre_completo, u.rol, u.estado, u.fecha_creacion,
+              u.supervisor_id, s.nombre AS supervisor_nombre
+       FROM usuarios u
+       LEFT JOIN supervisores s ON s.id = u.supervisor_id
+       ORDER BY u.nombre_completo`
     );
     res.status(200).json({ ok: true, data: result.rows });
   } catch (err) {
@@ -82,8 +91,11 @@ const obtenerPorId = async (req, res) => {
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `SELECT id, usuario, nombre_completo, rol, estado, fecha_creacion
-       FROM usuarios WHERE id = $1`,
+      `SELECT u.id, u.usuario, u.nombre_completo, u.rol, u.estado, u.fecha_creacion,
+              u.supervisor_id, s.nombre AS supervisor_nombre
+       FROM usuarios u
+       LEFT JOIN supervisores s ON s.id = u.supervisor_id
+       WHERE u.id = $1`,
       [Number(id_usuario)]
     );
     if (result.rows.length === 0) {
@@ -98,7 +110,7 @@ const obtenerPorId = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { usuario, password, nombre_completo, rol } = req.body;
+  const { usuario, password, nombre_completo, rol, supervisor_id } = req.body;
 
   if (!usuario || String(usuario).trim().length < 3) {
     return res.status(400).json({ ok: false, mensaje: 'El usuario es requerido (mínimo 3 caracteres).' });
@@ -108,6 +120,11 @@ const insertar = async (req, res) => {
   }
   if (!nombre_completo || String(nombre_completo).trim().length < 3) {
     return res.status(400).json({ ok: false, mensaje: 'El nombre completo es requerido.' });
+  }
+
+  // Si el rol es "supervisor", el supervisor_id es obligatorio para que el filtrado funcione
+  if (String(rol).toLowerCase() === 'supervisor' && !supervisor_id) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes seleccionar a qué supervisor pertenece este usuario.' });
   }
 
   let conn;
@@ -122,9 +139,9 @@ const insertar = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await conn.query(
-      `INSERT INTO usuarios (usuario, password, nombre_completo, rol, estado, fecha_creacion)
-       VALUES ($1, $2, $3, $4, 'activo', NOW()) RETURNING id`,
-      [usuario.trim(), passwordHash, nombre_completo.trim(), rol || 'empleado']
+      `INSERT INTO usuarios (usuario, password, nombre_completo, rol, estado, supervisor_id, fecha_creacion)
+       VALUES ($1, $2, $3, $4, 'activo', $5, NOW()) RETURNING id`,
+      [usuario.trim(), passwordHash, nombre_completo.trim(), rol || 'empleado', supervisor_id || null]
     );
 
     await registrarAuditoria(conn, {
@@ -145,18 +162,22 @@ const insertar = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_usuario } = req.params;
-  const { nombre_completo, rol, estado } = req.body;
+  const { nombre_completo, rol, estado, supervisor_id } = req.body;
 
   if (!nombre_completo || String(nombre_completo).trim().length < 3) {
     return res.status(400).json({ ok: false, mensaje: 'El nombre completo es requerido.' });
+  }
+
+  if (String(rol).toLowerCase() === 'supervisor' && !supervisor_id) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes seleccionar a qué supervisor pertenece este usuario.' });
   }
 
   let conn;
   try {
     conn = await getConnection();
     await conn.query(
-      `UPDATE usuarios SET nombre_completo = $1, rol = $2, estado = $3 WHERE id = $4`,
-      [nombre_completo.trim(), rol || 'empleado', estado || 'activo', Number(id_usuario)]
+      `UPDATE usuarios SET nombre_completo = $1, rol = $2, estado = $3, supervisor_id = $4 WHERE id = $5`,
+      [nombre_completo.trim(), rol || 'empleado', estado || 'activo', supervisor_id || null, Number(id_usuario)]
     );
 
     await registrarAuditoria(conn, {
