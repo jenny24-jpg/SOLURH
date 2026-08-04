@@ -73,21 +73,15 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [pageTourRun, setPageTourRun] = useState(false);
 
   const TOUR_MODULES = [
-    'tipos-variedad',
-    'tipos-fertilizante',
-    'tipos-tratamiento',
-    'estados-arbol',
-    'plagas-enfermedades',
-    'fincas',
-    'sectores',
-    'arboles',
-    'historial-estados',
-    'registros-plaga',
-    'registros-tratamiento',
-    'resiembras',
-    'movimiento-inventario',
+    'supervisores',
+    'clientes',
+    'empleados',
+    'asistencias',
+    'horas-extras',
+    'documentos-empleado',
+    'fotos-asistencia',
+    'historial-empleado',
   ];
-
   const runTour = TOUR_MODULES.includes(moduleKey);
 
   useEffect(() => {

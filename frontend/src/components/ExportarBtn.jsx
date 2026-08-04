@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import s from './ExportarBtn.module.css';
 
-// ── Paleta oficial Gestión de Árboles ──────────────────────
+// ── Paleta oficial SoluRH ──────────────────────────────────
 const COLORES = {
-  verdeProfundo:  '#1B4D2A',
-  verdeMedio:     '#2D7A3E',
-  verdeSalvia:    '#4CB968',
-  verdeMenta:     '#E8F5E9',
-  tierraCalida:   '#8B6F47',
-  oroForestal:    '#D4A853',
+  verdeProfundo:  '#1B2A4D',
+  verdeMedio:     '#2D5A9E',
+  verdeSalvia:    '#4C8FB9',
+  verdeMenta:     '#E8EDF5',
+  tierraCalida:   '#6B7280',
+  oroForestal:    '#94A3B8',
   rojoAlerta:     '#8B2E2E',
-  fondoClaro:     '#F2F7F3',
-  pergaminoVerde: '#DCEDDF',
+  fondoClaro:     '#F2F4F7',
+  pergaminoVerde: '#DCE3ED',
   grafito:        '#4A4A4A',
 };
 
@@ -287,10 +287,10 @@ function exportPDF(data, cols, title, { chartType = 'bar' } = {}) {
     <!-- Encabezado -->
     <div class="header">
       <div class="header-left">
-        <div class="header-icon">🌿</div>
+        <div class="header-icon">👥</div>
         <div>
           <h1>${title}</h1>
-          <div class="sub">Generado el ${fecha} · Sistema de Gestión de Árboles</div>
+          <div class="sub">Generado el ${fecha} · SoluRH — Sistema de Gestión de Personal</div>
         </div>
       </div>
       <div class="badge">
@@ -348,7 +348,7 @@ function exportPDF(data, cols, title, { chartType = 'bar' } = {}) {
 
     <!-- Footer -->
     <div class="footer">
-      <span>🌿 <strong>Gestión de Árboles</strong> — Reporte generado automáticamente</span>
+      <span>👥 <strong>SoluRH</strong> — Reporte generado automáticamente</span>
       <span>${data.length} registros · ${cols.length} campos · ${fecha}</span>
     </div>
 

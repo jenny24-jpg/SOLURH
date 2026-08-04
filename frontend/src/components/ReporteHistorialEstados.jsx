@@ -4,15 +4,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { API, apiFetch } from '../context/AuthContext';
 
 const C = {
-  verdeProfundo:  '#1B4D2A',
-  verdeMedio:     '#2D7A3E',
-  verdeSalvia:    '#4CB968',
-  verdeMenta:     '#E8F5E9',
-  tierraCalida:   '#8B6F47',
-  oroForestal:    '#D4A853',
+  verdeProfundo:  '#1B2A4D',
+  verdeMedio:     '#2D5A9E',
+  verdeSalvia:    '#4C8FB9',
+  verdeMenta:     '#E8EDF5',
+  tierraCalida:   '#6B7280',
+  oroForestal:    '#94A3B8',
   rojoAlerta:     '#8B2E2E',
-  fondoClaro:     '#F2F7F3',
-  pergaminoVerde: '#DCEDDF',
+  fondoClaro:     '#F2F4F7',
+  pergaminoVerde: '#DCE3ED',
   grafito:        '#4A4A4A',
 };
 
@@ -63,7 +63,7 @@ function generarPDFHistorial(datos) {
   const pad = { top:10, right:10, bottom:36, left:40 };
   const bW = Math.floor((CHART_W - pad.left - pad.right) / top5.length) - 6;
   const cH = CHART_H - pad.top - pad.bottom;
-  const pieColors = ['#2D7A3E','#D4A853','#8B6F47','#4CB968','#1B4D2A'];
+  const pieColors = ['#2D5A9E','#94A3B8','#6B7280','#4C8FB9','#1B2A4D'];
 
   const barrasTop5 = top5.map(([label, count], i) => {
     const bh = Math.round((count / maxCount) * cH);
@@ -75,18 +75,18 @@ function generarPDFHistorial(datos) {
       <rect x="${x}" y="${y}" width="${bW}" height="${bh}" fill="${color}" rx="3"/>
       <text x="${x+bW/2}" y="${pad.top+cH+13}" text-anchor="middle" font-size="7"
             fill="#4A4A4A" transform="rotate(-30,${x+bW/2},${pad.top+cH+13})">${lbl}</text>
-      <text x="${x+bW/2}" y="${y-3}" text-anchor="middle" font-size="7" font-weight="bold" fill="#1B4D2A">${count}</text>`;
+      <text x="${x+bW/2}" y="${y-3}" text-anchor="middle" font-size="7" font-weight="bold" fill="#1B2A4D">${count}</text>`;
   }).join('');
 
   const guias = [0,0.5,1].map(p => {
     const yg = pad.top + cH - Math.round(p*cH);
     const v  = Math.round(p*maxCount);
-    return `<line x1="${pad.left}" y1="${yg}" x2="${CHART_W-pad.right}" y2="${yg}" stroke="#DCEDDF" stroke-width="1"/>
+    return `<line x1="${pad.left}" y1="${yg}" x2="${CHART_W-pad.right}" y2="${yg}" stroke="#DCE3ED" stroke-width="1"/>
       <text x="${pad.left-4}" y="${yg+3}" text-anchor="end" font-size="6.5" fill="#4A4A4A">${v}</text>`;
   }).join('');
 
   const chartSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${CHART_W}" height="${CHART_H}" viewBox="0 0 ${CHART_W} ${CHART_H}">
-    <rect width="${CHART_W}" height="${CHART_H}" fill="#F2F7F3" rx="6"/>
+    <rect width="${CHART_W}" height="${CHART_H}" fill="#F2F4F7" rx="6"/>
     ${guias}${barrasTop5}
   </svg>`;
   const chartUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(chartSVG)}`;
@@ -111,9 +111,9 @@ function generarPDFHistorial(datos) {
       <td><strong>${emp}</strong></td>
       <td>${campo}</td>
       <td>${valAnt}</td>
-      <td><span style="background:#E8F5E9;color:#1B4D2A;padding:2px 6px;border-radius:10px;font-size:8.5px;font-weight:700">${valNuevo}</span></td>
+      <td><span style="background:#E8EDF5;color:#1B2A4D;padding:2px 6px;border-radius:10px;font-size:8.5px;font-weight:700">${valNuevo}</span></td>
       <td>${fechaCam}</td>
-      <td style="color:#8B6F47">${modPor}</td>
+      <td style="color:#6B7280">${modPor}</td>
     </tr>`;
   }).join('');
 
@@ -123,7 +123,7 @@ function generarPDFHistorial(datos) {
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Nunito',Arial,sans-serif;font-size:11px;color:#4A4A4A;background:#fff}
-    .header{background:linear-gradient(135deg,#1B4D2A 0%,#2D7A3E 100%);color:#fff;padding:22px 30px 18px;display:flex;align-items:flex-start;justify-content:space-between}
+    .header{background:linear-gradient(135deg,#1B2A4D 0%,#2D5A9E 100%);color:#fff;padding:22px 30px 18px;display:flex;align-items:flex-start;justify-content:space-between}
     .header-left{display:flex;align-items:center;gap:14px}
     .h-icon{width:48px;height:48px;background:rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
     .header h1{font-size:19px;font-weight:800;letter-spacing:-.3px}
@@ -132,23 +132,23 @@ function generarPDFHistorial(datos) {
     .badge strong{display:block;font-size:18px;font-weight:800}
     .body{padding:20px 28px}
     .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
-    .kpi{background:#F2F7F3;border:1px solid #DCEDDF;border-radius:10px;padding:10px 12px;border-left:4px solid #2D7A3E}
-    .kpi-label{font-size:8.5px;color:#8B6F47;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
-    .kpi-val{font-size:18px;font-weight:800;color:#1B4D2A;margin-top:2px}
+    .kpi{background:#F2F4F7;border:1px solid #DCE3ED;border-radius:10px;padding:10px 12px;border-left:4px solid #2D5A9E}
+    .kpi-label{font-size:8.5px;color:#6B7280;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+    .kpi-val{font-size:18px;font-weight:800;color:#1B2A4D;margin-top:2px}
     .section{margin-bottom:18px}
-    .sec-title{font-size:10px;font-weight:800;color:#1B4D2A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid #DCEDDF;display:flex;align-items:center;gap:6px}
-    .sec-title::before{content:'';display:inline-block;width:4px;height:14px;background:#2D7A3E;border-radius:2px;flex-shrink:0}
-    .chart-box{background:#F2F7F3;border:1px solid #DCEDDF;border-radius:10px;padding:12px;margin-bottom:16px}
-    .chart-box h3{font-size:9px;color:#8B6F47;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .sec-title{font-size:10px;font-weight:800;color:#1B2A4D;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid #DCE3ED;display:flex;align-items:center;gap:6px}
+    .sec-title::before{content:'';display:inline-block;width:4px;height:14px;background:#2D5A9E;border-radius:2px;flex-shrink:0}
+    .chart-box{background:#F2F4F7;border:1px solid #DCE3ED;border-radius:10px;padding:12px;margin-bottom:16px}
+    .chart-box h3{font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
     .chart-box img{width:100%;max-width:500px;height:auto}
     table{width:100%;border-collapse:collapse;font-size:9.5px}
-    thead tr{background:#1B4D2A}
+    thead tr{background:#1B2A4D}
     th{color:#fff;padding:8px 10px;text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
-    td{padding:7px 10px;border-bottom:1px solid #DCEDDF;vertical-align:top}
-    tr.alt td{background:#F2F7F3}
+    td{padding:7px 10px;border-bottom:1px solid #DCE3ED;vertical-align:top}
+    tr.alt td{background:#F2F4F7}
     tr:last-child td{border-bottom:none}
-    .footer{margin-top:20px;padding:14px 28px;background:#F2F7F3;border-top:2px solid #DCEDDF;display:flex;justify-content:space-between;align-items:center;font-size:8.5px;color:#8B6F47}
-    .footer strong{color:#1B4D2A}
+    .footer{margin-top:20px;padding:14px 28px;background:#F2F4F7;border-top:2px solid #DCE3ED;display:flex;justify-content:space-between;align-items:center;font-size:8.5px;color:#6B7280}
+    .footer strong{color:#1B2A4D}
     @media print{body{padding:0}.header,.sec-title::before,thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}.kpi,.chart-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
   <div class="header">
@@ -312,13 +312,13 @@ export default function ReporteHistorialEstados({ onBack }) {
     root:       { minHeight:'100vh', background: isDark ? '#0f1117' : C.fondoClaro },
     header:     { background: isDark ? '#1a1f2e' : '#fff', borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : `2px solid ${C.pergaminoVerde}`, padding:'20px 28px 12px' },
     breadcrumb: { display:'flex', alignItems:'center', gap:8, fontSize:12, color: isDark ? '#64748b' : C.tierraCalida, marginBottom:12 },
-    backBtn:    { background:'none', border:'none', cursor:'pointer', color: isDark ? '#86efac' : C.verdeMedio, fontWeight:700, display:'flex', alignItems:'center', gap:2, fontSize:12 },
+    backBtn:    { background:'none', border:'none', cursor:'pointer', color: isDark ? '#93c5fd' : C.verdeMedio, fontWeight:700, display:'flex', alignItems:'center', gap:2, fontSize:12 },
     sep:        { color: isDark ? 'rgba(255,255,255,0.18)' : C.pergaminoVerde },
-    bcCur:      { color: isDark ? '#86efac' : C.verdeProfundo, fontWeight:700 },
+    bcCur:      { color: isDark ? '#93c5fd' : C.verdeProfundo, fontWeight:700 },
     titleRow:   { display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 },
     titleBlock: { display:'flex', alignItems:'center', gap:14 },
-    titleIcon:  { width:48, height:48, background: isDark ? 'rgba(34,197,94,0.12)' : C.verdeMenta, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#4ade80' : C.verdeProfundo, fontSize:26 },
-    panelLabel: { fontSize:9, fontWeight:800, color: isDark ? '#4ade80' : C.tierraCalida, textTransform:'uppercase', letterSpacing:'.8px', margin:0 },
+    titleIcon:  { width:48, height:48, background: isDark ? 'rgba(37,99,235,0.12)' : C.verdeMenta, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#60a5fa' : C.verdeProfundo, fontSize:26 },
+    panelLabel: { fontSize:9, fontWeight:800, color: isDark ? '#60a5fa' : C.tierraCalida, textTransform:'uppercase', letterSpacing:'.8px', margin:0 },
     pageTitle:  { fontSize:22, fontWeight:800, color: isDark ? '#e2e8f0' : C.verdeProfundo, margin:0 },
     pageSub:    { fontSize:11, color: isDark ? '#64748b' : C.tierraCalida, marginTop:2 },
     refreshBtn: { background:C.verdeMedio, color:'#fff', border:'none', borderRadius:10, padding:'8px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700 },
@@ -327,21 +327,21 @@ export default function ReporteHistorialEstados({ onBack }) {
     searchInput:{ border:'none', background:'none', outline:'none', fontSize:12, flex:1, color: isDark ? '#e2e8f0' : C.grafito },
     sel:        { border: isDark ? '1px solid rgba(255,255,255,0.10)' : `1px solid ${C.pergaminoVerde}`, borderRadius:8, padding:'6px 10px', fontSize:12, color: isDark ? '#e2e8f0' : C.grafito, background: isDark ? 'rgba(255,255,255,0.05)' : '#fff', cursor:'pointer' },
     counter:    { fontSize:12, color: isDark ? '#64748b' : C.tierraCalida },
-    topCard:    { background: isDark ? '#1a1f2e' : '#fff', borderRadius:12, margin:'16px 20px 0', padding:'16px 20px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.35)' : `0 2px 8px rgba(27,77,42,.06)`, border: isDark ? '1px solid rgba(255,255,255,0.07)' : 'none' },
-    topTitle:   { fontSize:11, fontWeight:800, color: isDark ? '#86efac' : C.verdeProfundo, textTransform:'uppercase', letterSpacing:'.6px', marginBottom:12 },
+    topCard:    { background: isDark ? '#1a1f2e' : '#fff', borderRadius:12, margin:'16px 20px 0', padding:'16px 20px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.35)' : `0 2px 8px rgba(27,42,77,.06)`, border: isDark ? '1px solid rgba(255,255,255,0.07)' : 'none' },
+    topTitle:   { fontSize:11, fontWeight:800, color: isDark ? '#93c5fd' : C.verdeProfundo, textTransform:'uppercase', letterSpacing:'.6px', marginBottom:12 },
     topBars:    { display:'flex', flexDirection:'column', gap:8 },
     topItem:    { display:'flex', alignItems:'center', gap:10 },
     topLabel:   { width:140, fontSize:11, fontWeight:600, color: isDark ? '#94a3b8' : C.grafito, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
     topBarTrack:{ flex:1, height:12, background: isDark ? 'rgba(255,255,255,0.06)' : C.pergaminoVerde, borderRadius:6, overflow:'hidden' },
     topBarFill: { height:'100%', borderRadius:6, transition:'width .4s' },
-    topCount:   { width:24, fontSize:11, fontWeight:800, color: isDark ? '#86efac' : C.verdeProfundo, textAlign:'right' },
+    topCount:   { width:24, fontSize:11, fontWeight:800, color: isDark ? '#93c5fd' : C.verdeProfundo, textAlign:'right' },
     content:    { padding:'16px 20px' },
     center:     { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px 0', color: isDark ? '#64748b' : C.tierraCalida, gap:12 },
     spinner:    { width:32, height:32, border: isDark ? '3px solid rgba(255,255,255,0.10)' : `3px solid ${C.pergaminoVerde}`, borderTopColor:C.verdeMedio, borderRadius:'50%', animation:'spin 1s linear infinite' },
     errBox:     { display:'flex', alignItems:'center', gap:12, background: isDark ? 'rgba(239,68,68,0.10)' : '#fff5f5', border: isDark ? '1px solid rgba(239,68,68,0.25)' : `1px solid #fcc`, borderRadius:12, padding:'16px 20px', color: isDark ? '#fca5a5' : '#8B2E2E' },
     empty:      { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px 0' },
-    table:      { width:'100%', borderCollapse:'collapse', background: isDark ? '#1a1f2e' : '#fff', borderRadius:12, overflow:'hidden', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.35)' : `0 2px 8px rgba(27,77,42,.06)` },
-    th:         { background: isDark ? 'rgba(34,197,94,0.08)' : C.verdeProfundo, color: isDark ? '#86efac' : '#fff', padding:'10px 12px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'.5px', fontWeight:700 },
+    table:      { width:'100%', borderCollapse:'collapse', background: isDark ? '#1a1f2e' : '#fff', borderRadius:12, overflow:'hidden', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.35)' : `0 2px 8px rgba(27,42,77,.06)` },
+    th:         { background: isDark ? 'rgba(37,99,235,0.08)' : C.verdeProfundo, color: isDark ? '#93c5fd' : '#fff', padding:'10px 12px', textAlign:'left', fontSize:10, textTransform:'uppercase', letterSpacing:'.5px', fontWeight:700 },
     td:         { padding:'10px 12px', borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : `1px solid ${C.pergaminoVerde}`, fontSize:12, color: isDark ? '#cbd5e1' : 'inherit' },
   };
 
@@ -486,11 +486,11 @@ export default function ReporteHistorialEstados({ onBack }) {
                       ? { background: isDark ? '#1a1f2e' : '#fff' }
                       : { background: isDark ? 'rgba(255,255,255,0.03)' : C.fondoClaro }}>
                       <td style={st.td}>{i+1}</td>
-                      <td style={{...st.td, fontWeight:600, color: isDark ? '#86efac' : C.verdeProfundo}}>{emp}</td>
+                      <td style={{...st.td, fontWeight:600, color: isDark ? '#93c5fd' : C.verdeProfundo}}>{emp}</td>
                       <td style={{...st.td, color: isDark ? '#94a3b8' : C.tierraCalida}}>{campo}</td>
                       <td style={{...st.td, color: isDark ? '#94a3b8' : C.tierraCalida}}>{valAnt}</td>
                       <td style={st.td}>
-                        <span style={{background: isDark ? 'rgba(34,197,94,0.12)' : C.verdeMenta, color: isDark ? '#86efac' : C.verdeProfundo,
+                        <span style={{background: isDark ? 'rgba(37,99,235,0.12)' : C.verdeMenta, color: isDark ? '#93c5fd' : C.verdeProfundo,
                           padding:'3px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>
                           {valNvo}
                         </span>
