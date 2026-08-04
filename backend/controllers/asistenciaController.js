@@ -9,12 +9,65 @@ function usuarioAuditoria(req) {
 }
 
 const SELECT_BASE = `
-  SELECT a.*, e.nombres, e.apellidos, c.nombre AS cliente, s.nombre AS supervisor
+  SELECT a.*, e.nombres, e.apellidos, c.nombre AS cliente, s.nombre AS supervisor,
+         he.horas AS horas_extra
   FROM asistencias a
   LEFT JOIN empleados e ON e.id = a.empleado_id
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
+  LEFT JOIN horas_extra he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
 `;
+
+// ── Helper: crea, actualiza o elimina el registro de horas extra
+// vinculado a un empleado + fecha, según el valor recibido ──────
+async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, usuarioId, usuarioNombre }) {
+  const horas = horas_extra !== undefined && horas_extra !== null && horas_extra !== ''
+    ? Number(horas_extra)
+    : 0;
+
+  const existente = await conn.query(
+    `SELECT id FROM horas_extra WHERE empleado_id = $1 AND fecha = $2`,
+    [Number(empleado_id), fecha]
+  );
+
+  if (horas > 0) {
+    if (existente.rows.length > 0) {
+      // Ya existe un registro de horas extra para ese empleado/fecha → actualizar
+      await conn.query(
+        `UPDATE horas_extra SET horas = $1 WHERE id = $2`,
+        [horas, existente.rows[0].id]
+      );
+    } else {
+      // No existe → crear uno nuevo
+      await conn.query(
+        `INSERT INTO horas_extra (empleado_id, fecha, horas, motivo, aprobado)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false]
+      );
+    }
+
+    await registrarAuditoria(conn, {
+      tabla: 'HORAS_EXTRA',
+      operacion: existente.rows.length > 0 ? 'UPDATE' : 'INSERT',
+      idRegistro: existente.rows[0]?.id || null,
+      descripcion: `Horas extra (${horas}h) sincronizadas desde asistencia para empleado ${empleado_id} el ${fecha}`,
+      usuarioId,
+      usuarioNombre,
+    });
+  } else if (existente.rows.length > 0) {
+    // Si horas_extra quedó en 0/vacío pero antes existía un registro, lo eliminamos
+    await conn.query(`DELETE FROM horas_extra WHERE id = $1`, [existente.rows[0].id]);
+
+    await registrarAuditoria(conn, {
+      tabla: 'HORAS_EXTRA',
+      operacion: 'DELETE',
+      idRegistro: existente.rows[0].id,
+      descripcion: `Horas extra eliminadas (quedaron en 0) para empleado ${empleado_id} el ${fecha}`,
+      usuarioId,
+      usuarioNombre,
+    });
+  }
+}
 
 const listar = async (req, res) => {
   const { supervisor_id } = req.query;
@@ -70,7 +123,7 @@ const listarPorEmpleado = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones } = req.body;
+  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra } = req.body;
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -100,6 +153,14 @@ const insertar = async (req, res) => {
       operacion: 'INSERT',
       idRegistro: result.rows[0].id,
       descripcion: `Asistencia registrada para empleado ${empleado_id} el ${fecha}`,
+      ...usuarioAuditoria(req),
+    });
+
+    // Sincronizar horas extra si se recibió el campo
+    await sincronizarHorasExtra(conn, {
+      empleado_id,
+      fecha,
+      horas_extra,
       ...usuarioAuditoria(req),
     });
 
@@ -146,7 +207,7 @@ const marcarSalida = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_asistencia } = req.params;
-  const { fecha, hora_entrada, hora_salida, estado, observaciones } = req.body;
+  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra } = req.body;
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
@@ -155,6 +216,14 @@ const actualizar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
+
+    // Necesitamos el empleado_id actual de la asistencia por si no vino en el body
+    let empleadoIdFinal = empleado_id;
+    if (!empleadoIdFinal) {
+      const actual = await conn.query(`SELECT empleado_id FROM asistencias WHERE id = $1`, [Number(id_asistencia)]);
+      empleadoIdFinal = actual.rows[0]?.empleado_id;
+    }
+
     await conn.query(
       `UPDATE asistencias SET fecha=$1, hora_entrada=$2, hora_salida=$3, estado=$4, observaciones=$5 WHERE id=$6`,
       [fecha, hora_entrada || null, hora_salida || null, estado || 'PRESENTE', observaciones || null, Number(id_asistencia)]
@@ -167,6 +236,15 @@ const actualizar = async (req, res) => {
       descripcion: `Asistencia ${id_asistencia} actualizada`,
       ...usuarioAuditoria(req),
     });
+
+    if (empleadoIdFinal) {
+      await sincronizarHorasExtra(conn, {
+        empleado_id: empleadoIdFinal,
+        fecha,
+        horas_extra,
+        ...usuarioAuditoria(req),
+      });
+    }
 
     res.status(200).json({ ok: true, mensaje: 'Asistencia actualizada correctamente.' });
   } catch (err) {

@@ -1154,6 +1154,14 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                     rows={4}
                     placeholder={`Ingresa ${field.label.toLowerCase()}`}
                   />
+                  ) : field.type === 'time' ? (
+                  <input
+                    type="time"
+                    value={form[field.name] || ''}
+                    onChange={e => set(field.name, e.target.value)}
+                    className={`${s.input} ${fieldErrors[field.name] ? s.inputError : ''}`}
+                  />
+                
                 ) : field.type === 'date' ? (
                   <div className={fieldErrors[field.name] ? s.dateErrorWrap : ''}>
                     <DatePickerField

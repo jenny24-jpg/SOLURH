@@ -50,8 +50,8 @@
 
   export const HIDDEN_COLS = new Set([
     'id',
-    'created_at', 'fecha_creacion', 'correo',
-    'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico',
+    'created_at', 'fecha_creacion', 'correo', 'telefono', 'fecha_baja', 'motivo_baja', 'fotografia',
+    'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 
   ]);
 
   export const DASHBOARD_QUICK_ACCESS = [
@@ -130,7 +130,7 @@
       ],
     },
 
-    
+
 
     empleados: {
       title: 'Empleados',
@@ -161,33 +161,42 @@
         },
         { name: 'jornada', label: 'Jornada', type: 'select', required: true, options: JORNADA_OPTIONS },
         { name: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date', required: true, noFutureDate: true },
-        { name: 'salario', label: 'Salario', type: 'number', min: 0 },
+        {
+  name: 'banco',
+  label: 'Banco',
+  type: 'select',
+  options: [
+    { value: 'BI', label: 'Banco Industrial (BI)' },
+  ],
+},
+{ name: 'cuenta', label: 'No. de cuenta', type: 'text', onlyNumbers: true, maxLength: 20 },
         { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ACTIVO_OPTIONS },
         { name: 'observaciones', label: 'Observaciones', type: 'textarea', maxLength: 500 },
       ],
     },
 
     asistencias: {
-      title: 'Asistencias',
-      endpoint: '/asistencia',
-      icon: 'event_available',
-      fields: [
-        {
-          name: 'empleado_id',
-          label: 'Empleado',
-          type: 'remote-select',
-          required: true,
-          optionSource: '/empleado',
-          optionValue: 'id',
-          optionLabel: 'nombres',
-        },
-        { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
-        { name: 'hora_entrada', label: 'Hora entrada', type: 'text' },
-        { name: 'hora_salida', label: 'Hora salida', type: 'text' },
-        { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ASISTENCIA_OPTIONS },
-        { name: 'observaciones', label: 'Observaciones', type: 'textarea', maxLength: 500 },
-      ],
-    },
+    title: 'Asistencias',
+    endpoint: '/asistencia',
+    icon: 'event_available',
+    fields: [
+      {
+        name: 'empleado_id',
+        label: 'Empleado',
+        type: 'remote-select',
+        required: true,
+        optionSource: '/empleado',
+        optionValue: 'id',
+        optionLabel: 'nombres',
+      },
+      { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
+      { name: 'hora_entrada', label: 'Hora entrada', type: 'time' },
+      { name: 'hora_salida', label: 'Hora salida', type: 'time' },
+      { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ASISTENCIA_OPTIONS },
+     { name: 'horas_extra', label: 'Horas extra (si aplica)', type: 'number', min: 0 },
+      { name: 'observaciones', label: 'Observaciones', type: 'textarea', maxLength: 500 },
+    ],
+  },
 
     'horas-extras': {
       title: 'Horas Extras',
