@@ -20,7 +20,8 @@ const SELECT_BAJAS = `
     e.id AS empleado_id,
     e.nombres,
     e.apellidos,
-    e.fecha_baja,
+    e.fecha_ingreso,
+    e.fecha_baja AS fecha_de_baja,
     e.motivo_baja,
     c.nombre AS cliente,
     s.nombre AS supervisor

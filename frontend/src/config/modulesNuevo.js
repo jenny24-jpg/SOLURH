@@ -42,6 +42,8 @@
     nombre_completo: 'Nombre completo',
     rol: 'Rol',
     cliente: 'Cliente',
+    fecha_ingreso: 'Fecha de ingreso',
+    fecha_de_baja: 'Fecha de baja',
     supervisor: 'Supervisor',
   };
 
@@ -49,7 +51,7 @@
     COL_LABELS[key?.toLowerCase()] ?? key?.replace(/_/g, ' ') ?? key;
 
   export const HIDDEN_COLS = new Set([
-    'id',
+    'id', 'aprobado', 'salario',
     'created_at', 'fecha_creacion', 'correo', 'telefono', 'fecha_baja', 'motivo_baja', 'fotografia',
     'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 
   ]);
