@@ -15,7 +15,7 @@ const SELECT_BASE = `
   LEFT JOIN empleados e ON e.id = a.empleado_id
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
-  LEFT JOIN horas_extra he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
+  LEFT JOIN horas_extras he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
 `;
 
 // ── Helper: crea, actualiza o elimina el registro de horas extra
@@ -26,28 +26,26 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, us
     : 0;
 
   const existente = await conn.query(
-    `SELECT id FROM horas_extra WHERE empleado_id = $1 AND fecha = $2`,
+    `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2`,
     [Number(empleado_id), fecha]
   );
 
   if (horas > 0) {
     if (existente.rows.length > 0) {
-      // Ya existe un registro de horas extra para ese empleado/fecha → actualizar
       await conn.query(
-        `UPDATE horas_extra SET horas = $1 WHERE id = $2`,
+        `UPDATE horas_extras SET horas = $1 WHERE id = $2`,
         [horas, existente.rows[0].id]
       );
     } else {
-      // No existe → crear uno nuevo
       await conn.query(
-        `INSERT INTO horas_extra (empleado_id, fecha, horas, motivo, aprobado)
+        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado)
          VALUES ($1, $2, $3, $4, $5)`,
         [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false]
       );
     }
 
     await registrarAuditoria(conn, {
-      tabla: 'HORAS_EXTRA',
+      tabla: 'HORAS_EXTRAS',
       operacion: existente.rows.length > 0 ? 'UPDATE' : 'INSERT',
       idRegistro: existente.rows[0]?.id || null,
       descripcion: `Horas extra (${horas}h) sincronizadas desde asistencia para empleado ${empleado_id} el ${fecha}`,
@@ -55,11 +53,10 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, us
       usuarioNombre,
     });
   } else if (existente.rows.length > 0) {
-    // Si horas_extra quedó en 0/vacío pero antes existía un registro, lo eliminamos
-    await conn.query(`DELETE FROM horas_extra WHERE id = $1`, [existente.rows[0].id]);
+    await conn.query(`DELETE FROM horas_extras WHERE id = $1`, [existente.rows[0].id]);
 
     await registrarAuditoria(conn, {
-      tabla: 'HORAS_EXTRA',
+      tabla: 'HORAS_EXTRAS',
       operacion: 'DELETE',
       idRegistro: existente.rows[0].id,
       descripcion: `Horas extra eliminadas (quedaron en 0) para empleado ${empleado_id} el ${fecha}`,
@@ -156,7 +153,6 @@ const insertar = async (req, res) => {
       ...usuarioAuditoria(req),
     });
 
-    // Sincronizar horas extra si se recibió el campo
     await sincronizarHorasExtra(conn, {
       empleado_id,
       fecha,
@@ -217,7 +213,6 @@ const actualizar = async (req, res) => {
   try {
     conn = await getConnection();
 
-    // Necesitamos el empleado_id actual de la asistencia por si no vino en el body
     let empleadoIdFinal = empleado_id;
     if (!empleadoIdFinal) {
       const actual = await conn.query(`SELECT empleado_id FROM asistencias WHERE id = $1`, [Number(id_asistencia)]);
