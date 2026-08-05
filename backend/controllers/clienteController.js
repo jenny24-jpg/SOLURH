@@ -8,17 +8,27 @@ function usuarioAuditoria(req) {
   return { usuarioId: req.usuario?.id || null, usuarioNombre: req.usuario?.username || 'Sistema' };
 }
 
+const SELECT_BASE = `
+  SELECT c.*, s.nombre AS supervisor_nombre
+  FROM clientes c
+  LEFT JOIN supervisores s ON s.id = c.supervisor_id
+`;
+
 const listar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const result = await conn.query(
-      `SELECT c.*, s.nombre AS supervisor_nombre
-       FROM clientes c
-       LEFT JOIN supervisores s ON s.id = c.supervisor_id
-       WHERE c.estado = 'ACTIVO'
-       ORDER BY c.nombre`
-    );
+
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorId = req.usuario?.supervisor_id;
+
+    const query = esSupervisor && supervisorId
+      ? `${SELECT_BASE} WHERE c.estado = 'ACTIVO' AND c.supervisor_id = $1 ORDER BY c.nombre`
+      : `${SELECT_BASE} WHERE c.estado = 'ACTIVO' ORDER BY c.nombre`;
+
+    const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
+
+    const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
@@ -27,13 +37,12 @@ const listar = async (req, res) => {
   }
 };
 
-
 const obtenerPorId = async (req, res) => {
   const { id_cliente } = req.params;
   let conn;
   try {
     conn = await getConnection();
-    const result = await conn.query('SELECT * FROM clientes WHERE id = $1', [Number(id_cliente)]);
+    const result = await conn.query(`${SELECT_BASE} WHERE c.id = $1`, [Number(id_cliente)]);
     if (result.rows.length === 0) return res.status(404).json({ ok: false, mensaje: 'Cliente no encontrado.' });
     res.status(200).json({ ok: true, data: result.rows[0] });
   } catch (err) {

@@ -67,16 +67,32 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, us
 }
 
 const listar = async (req, res) => {
-  const { supervisor_id } = req.query;
   let conn;
   try {
     conn = await getConnection();
 
-    const query = supervisor_id
-      ? `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY a.fecha DESC, a.hora_entrada DESC`
-      : `${SELECT_BASE} ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+    // Filtrado automático: si quien consulta es un usuario "supervisor",
+    // solo ve las asistencias de empleados bajo su propio supervisor_id.
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorIdUsuario = req.usuario?.supervisor_id;
 
-    const params = supervisor_id ? [Number(supervisor_id)] : [];
+    // Si además viene un supervisor_id explícito por query (uso admin/manual),
+    // se respeta esa opción cuando quien consulta NO es un supervisor limitado.
+    const supervisorIdQuery = req.query.supervisor_id;
+
+    let query;
+    let params;
+
+    if (esSupervisor && supervisorIdUsuario) {
+      query = `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      params = [Number(supervisorIdUsuario)];
+    } else if (supervisorIdQuery) {
+      query = `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      params = [Number(supervisorIdQuery)];
+    } else {
+      query = `${SELECT_BASE} ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      params = [];
+    }
 
     const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });

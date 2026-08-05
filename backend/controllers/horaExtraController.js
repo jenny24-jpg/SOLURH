@@ -9,7 +9,7 @@ function usuarioAuditoria(req) {
 }
 
 const SELECT_BASE = `
-  SELECT h.*, e.nombres, e.apellidos
+  SELECT h.*, e.nombres, e.apellidos, e.supervisor_id
   FROM horas_extras h
   LEFT JOIN empleados e ON e.id = h.empleado_id
 `;
@@ -18,7 +18,17 @@ const listar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const result = await conn.query(`${SELECT_BASE} ORDER BY h.fecha DESC`);
+
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorId = req.usuario?.supervisor_id;
+
+    const query = esSupervisor && supervisorId
+      ? `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY h.fecha DESC`
+      : `${SELECT_BASE} ORDER BY h.fecha DESC`;
+
+    const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
+
+    const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
