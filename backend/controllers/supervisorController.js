@@ -14,19 +14,35 @@ const listar = async (req, res) => {
   try {
     conn = await getConnection();
 
-    const query = cliente_id
-      ? `SELECT s.*, c.nombre AS cliente_nombre
-         FROM supervisores s
-         LEFT JOIN clientes c ON c.id = s.cliente_id
-         WHERE s.estado = 'ACTIVO' AND s.cliente_id = $1
-         ORDER BY s.nombre`
-      : `SELECT s.*, c.nombre AS cliente_nombre
-         FROM supervisores s
-         LEFT JOIN clientes c ON c.id = s.cliente_id
-         WHERE s.estado = 'ACTIVO'
-         ORDER BY s.nombre`;
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorIdUsuario = req.usuario?.supervisor_id;
 
-    const params = cliente_id ? [Number(cliente_id)] : [];
+    let query;
+    let params;
+
+    if (esSupervisor && supervisorIdUsuario) {
+      // Un usuario de tipo supervisor solo ve su propio registro
+      query = `SELECT s.*, c.nombre AS cliente_nombre
+                FROM supervisores s
+                LEFT JOIN clientes c ON c.id = s.cliente_id
+                WHERE s.estado = 'ACTIVO' AND s.id = $1
+                ORDER BY s.nombre`;
+      params = [Number(supervisorIdUsuario)];
+    } else if (cliente_id) {
+      query = `SELECT s.*, c.nombre AS cliente_nombre
+                FROM supervisores s
+                LEFT JOIN clientes c ON c.id = s.cliente_id
+                WHERE s.estado = 'ACTIVO' AND s.cliente_id = $1
+                ORDER BY s.nombre`;
+      params = [Number(cliente_id)];
+    } else {
+      query = `SELECT s.*, c.nombre AS cliente_nombre
+                FROM supervisores s
+                LEFT JOIN clientes c ON c.id = s.cliente_id
+                WHERE s.estado = 'ACTIVO'
+                ORDER BY s.nombre`;
+      params = [];
+    }
 
     const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });
@@ -36,6 +52,7 @@ const listar = async (req, res) => {
     await closeConnection(conn);
   }
 };
+
 
 const obtenerPorId = async (req, res) => {
   const { id_supervisor } = req.params;
