@@ -4,9 +4,12 @@
 const { getConnection, closeConnection } = require('../config/db');
 
 const SELECT_BASE = `
-  SELECT h.*, e.nombres, e.apellidos, u.nombre_completo AS usuario_nombre
+  SELECT h.*, e.nombres, e.apellidos, e.supervisor_id, c.nombre AS cliente, s.nombre AS supervisor,
+         u.nombre_completo AS usuario_nombre
   FROM historial_empleado h
   LEFT JOIN empleados e ON e.id = h.empleado_id
+  LEFT JOIN clientes c ON c.id = e.cliente_id
+  LEFT JOIN supervisores s ON s.id = e.supervisor_id
   LEFT JOIN usuarios u ON u.id = h.usuario_modifico
 `;
 
@@ -23,6 +26,7 @@ const SELECT_BAJAS = `
     e.fecha_ingreso,
     e.fecha_baja AS fecha_de_baja,
     e.motivo_baja,
+    e.supervisor_id,
     c.nombre AS cliente,
     s.nombre AS supervisor
   FROM empleados e
@@ -86,12 +90,23 @@ const listarPorEmpleado = async (req, res) => {
     await closeConnection(conn);
   }
 };
+
 // ── Listar TODOS los cambios de historial (para el reporte general) ──
 const listarCambios = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const result = await conn.query(`${SELECT_BASE} ORDER BY h.fecha DESC`);
+
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorId = req.usuario?.supervisor_id;
+
+    const query = esSupervisor && supervisorId
+      ? `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY h.fecha DESC`
+      : `${SELECT_BASE} ORDER BY h.fecha DESC`;
+
+    const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
+
+    const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
