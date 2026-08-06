@@ -25,7 +25,7 @@ function exportCSV(data, cols, title) {
       return `"${val}"`;
     }).join(',')
   );
-  const csv  = [header, ...rows].join('\n');
+  const csv  = ['sep=,', header, ...rows].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
