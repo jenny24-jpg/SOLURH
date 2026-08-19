@@ -161,7 +161,7 @@
           optionValue: 'id',
           optionLabel: 'nombre',
         },
-        { name: 'jornada', label: 'Jornada', type: 'select', required: true, options: JORNADA_OPTIONS },
+        
         { name: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date', required: true, noFutureDate: true },
         {
   name: 'banco',

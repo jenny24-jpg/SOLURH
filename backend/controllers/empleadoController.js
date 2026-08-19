@@ -1,4 +1,4 @@
-// ============================================================
+  // ============================================================
 // controllers/empleadoController.js
 // ============================================================
 const { getConnection, closeConnection } = require('../config/db');
@@ -34,7 +34,8 @@ const listar = async (req, res) => {
     const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
 
     const result = await conn.query(query, params);
-    res.status(200).json({ ok: true, data: result.rows });
+    const data = result.rows.map(({ jornada, ...rest }) => rest);
+    res.status(200).json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
@@ -49,7 +50,8 @@ const obtenerPorId = async (req, res) => {
     conn = await getConnection();
     const result = await conn.query(`${SELECT_BASE} WHERE e.id = $1`, [Number(id_empleado)]);
     if (result.rows.length === 0) return res.status(404).json({ ok: false, mensaje: 'Empleado no encontrado.' });
-    res.status(200).json({ ok: true, data: result.rows[0] });
+    const { jornada, ...row } = result.rows[0];
+    res.status(200).json({ ok: true, data: row });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
@@ -60,7 +62,7 @@ const obtenerPorId = async (req, res) => {
 const insertar = async (req, res) => {
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, jornada,
+    cliente_id, supervisor_id,
     fecha_ingreso, salario, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -80,9 +82,6 @@ const insertar = async (req, res) => {
   if (!supervisor_id) {
     return res.status(400).json({ ok: false, mensaje: 'El supervisor es requerido.' });
   }
-  if (!jornada) {
-    return res.status(400).json({ ok: false, mensaje: 'La jornada es requerida.' });
-  }
   if (!fecha_ingreso) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha de ingreso es requerida.' });
   }
@@ -92,8 +91,8 @@ const insertar = async (req, res) => {
     conn = await getConnection();
     const result = await conn.query(
       `INSERT INTO empleados
-        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVO',$10,$11,$12,$13,$14,$15, NOW())
+        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVO',$9,$10,$11,$12,$13,$14, NOW())
        RETURNING id`,
       [
         nombres.trim(),
@@ -102,7 +101,6 @@ const insertar = async (req, res) => {
         nit || null,
         Number(cliente_id),
         Number(supervisor_id),
-        jornada,
         fecha_ingreso,
         salario || null,
         observaciones || null,
@@ -135,7 +133,7 @@ const actualizar = async (req, res) => {
   const { id_empleado } = req.params;
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, jornada,
+    cliente_id, supervisor_id,
     fecha_ingreso, salario, estado, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -153,10 +151,10 @@ const actualizar = async (req, res) => {
     await conn.query(
       `UPDATE empleados SET
         nombres=$1, apellidos=$2, dpi=$3, nit=$4,
-        cliente_id=$5, supervisor_id=$6, jornada=$7,
-        fecha_ingreso=$8, salario=$9, estado=$10, observaciones=$11, fotografia=$12,
-        banco=$13, cuenta=$14, tipo_cuenta=$15, nombre_cuenta=$16
-       WHERE id=$17`,
+        cliente_id=$5, supervisor_id=$6,
+        fecha_ingreso=$7, salario=$8, estado=$9, observaciones=$10, fotografia=$11,
+        banco=$12, cuenta=$13, tipo_cuenta=$14, nombre_cuenta=$15
+       WHERE id=$16`,
       [
         nombres.trim(),
         apellidos.trim(),
@@ -164,7 +162,6 @@ const actualizar = async (req, res) => {
         nit || null,
         Number(cliente_id),
         Number(supervisor_id),
-        jornada,
         fecha_ingreso,
         salario || null,
         estado || 'ACTIVO',
