@@ -62,6 +62,7 @@ const insertar = async (req, res) => {
     nombres, apellidos, dpi, nit,
     cliente_id, supervisor_id, jornada,
     fecha_ingreso, salario, observaciones, fotografia,
+    banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
 
   if (!nombres || String(nombres).trim().length < 2) {
@@ -91,8 +92,8 @@ const insertar = async (req, res) => {
     conn = await getConnection();
     const result = await conn.query(
       `INSERT INTO empleados
-        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, fecha_creacion)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVO',$10,$11, NOW())
+        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVO',$10,$11,$12,$13,$14,$15, NOW())
        RETURNING id`,
       [
         nombres.trim(),
@@ -106,6 +107,10 @@ const insertar = async (req, res) => {
         salario || null,
         observaciones || null,
         fotografia || null,
+        banco || null,
+        cuenta || null,
+        tipo_cuenta || null,
+        nombre_cuenta || null,
       ]
     );
 
@@ -132,6 +137,7 @@ const actualizar = async (req, res) => {
     nombres, apellidos, dpi, nit,
     cliente_id, supervisor_id, jornada,
     fecha_ingreso, salario, estado, observaciones, fotografia,
+    banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
 
   if (!nombres || String(nombres).trim().length < 2) {
@@ -148,8 +154,9 @@ const actualizar = async (req, res) => {
       `UPDATE empleados SET
         nombres=$1, apellidos=$2, dpi=$3, nit=$4,
         cliente_id=$5, supervisor_id=$6, jornada=$7,
-        fecha_ingreso=$8, salario=$9, estado=$10, observaciones=$11, fotografia=$12
-       WHERE id=$13`,
+        fecha_ingreso=$8, salario=$9, estado=$10, observaciones=$11, fotografia=$12,
+        banco=$13, cuenta=$14, tipo_cuenta=$15, nombre_cuenta=$16
+       WHERE id=$17`,
       [
         nombres.trim(),
         apellidos.trim(),
@@ -163,6 +170,10 @@ const actualizar = async (req, res) => {
         estado || 'ACTIVO',
         observaciones || null,
         fotografia || null,
+        banco || null,
+        cuenta || null,
+        tipo_cuenta || null,
+        nombre_cuenta || null,
         Number(id_empleado),
       ]
     );
