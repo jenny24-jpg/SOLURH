@@ -172,6 +172,16 @@
   ],
 },
 { name: 'cuenta', label: 'No. de cuenta', type: 'text', onlyNumbers: true, maxLength: 20 },
+{
+  name: 'tipo_cuenta',
+  label: 'Tipo de cuenta',
+  type: 'select',
+  options: [
+    { value: 'Ahorro', label: 'Ahorro' },
+    { value: 'Monetaria', label: 'Monetaria' },
+  ],
+},
+{ name: 'nombre_cuenta', label: 'A nombre de quién está la cuenta', type: 'text', onlyText: true, maxLength: 100 },
         { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ACTIVO_OPTIONS },
         { name: 'observaciones', label: 'Observaciones', type: 'textarea', maxLength: 500 },
       ],
