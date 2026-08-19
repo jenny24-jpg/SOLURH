@@ -184,14 +184,15 @@
     fields: [
       {
         name: 'empleado_id',
-        label: 'Empleado',
-        type: 'remote-select',
+        label: 'Empleados',
+        type: 'remote-multiselect',
         required: true,
         optionSource: '/empleado',
         optionValue: 'id',
         optionLabel: 'nombres',
       },
-      { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
+      { name: 'fecha_inicio', label: 'Fecha inicio', type: 'date', required: true, noFutureDate: true, rangeTarget: 'fecha', rangeRole: 'start' },
+      { name: 'fecha_fin', label: 'Fecha fin', type: 'date', required: true, noFutureDate: true, minDateField: 'fecha_inicio', rangeTarget: 'fecha', rangeRole: 'end' },
       { name: 'hora_entrada', label: 'Hora entrada', type: 'time' },
       { name: 'hora_salida', label: 'Hora salida', type: 'time' },
       { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ASISTENCIA_OPTIONS },

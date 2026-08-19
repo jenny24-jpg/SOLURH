@@ -13,9 +13,23 @@ export default function CrudFormNuevo({ config, editItem, editId, onClose, onSav
     const f = {};
 
     fields.forEach(field => {
+      if (field.type === 'remote-multiselect') {
+        const raw =
+          editItem?.[field.name] ?? editItem?.[field.name?.toUpperCase()] ?? null;
+
+        f[field.name] =
+          raw !== null && raw !== undefined && raw !== '' ? [raw] : [];
+        return;
+      }
+
+      // Campos de rango de fecha (fecha_inicio/fecha_fin): en edición ambos
+      // se prellenan con la fecha real del registro (rangeTarget), ya que
+      // ese registro representa un único día.
+      const sourceKey = field.rangeTarget || field.name;
+
       let val =
-        editItem?.[field.name] ??
-        editItem?.[field.name?.toUpperCase()] ??
+        editItem?.[sourceKey] ??
+        editItem?.[sourceKey?.toUpperCase()] ??
         '';
 
       if (field.type === 'date' && val) {
@@ -340,8 +354,11 @@ isSector
         },
       ];
   const requiredCount = useMemo(
-    () => fields.filter(field => field.required).length,
-    [fields]
+    () =>
+      fields.filter(
+        field => field.required && !(isEdit && field.rangeRole === 'end')
+      ).length,
+    [fields, isEdit]
   );
 
   const fieldMap = useMemo(() => {
@@ -417,6 +434,27 @@ isSector
     } finally {
       setUploadingFile(prev => ({ ...prev, [fieldName]: false }));
     }
+  };
+
+  const toggleMultiSelect = (fieldName, optionValue) => {
+    setForm(prev => {
+      const current = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
+      const key = String(optionValue);
+      const exists = current.some(v => String(v) === key);
+
+      const next = exists
+        ? current.filter(v => String(v) !== key)
+        : [...current, optionValue];
+
+      return { ...prev, [fieldName]: next };
+    });
+
+    setFieldErrors(prev => {
+      if (!prev[fieldName]) return prev;
+      const next = { ...prev };
+      delete next[fieldName];
+      return next;
+    });
   };
 
   const set = (k, v) => {
@@ -654,7 +692,9 @@ isSector
     };
 
     const remoteFields = fields.filter(
-      field => field.type === 'remote-select' && field.optionSource
+      field =>
+        (field.type === 'remote-select' || field.type === 'remote-multiselect') &&
+        field.optionSource
     );
 
     remoteFields.forEach(field => {
@@ -800,6 +840,14 @@ isSector
     if (field.omitOnSubmit) continue;
 
     const value = form[field.name];
+
+    if (field.type === 'remote-multiselect') {
+      if (field.required && (!Array.isArray(value) || value.length === 0)) {
+        errors[field.name] = `Selecciona al menos un elemento en "${field.label}"`;
+      }
+      continue;
+    }
+
     const isEmpty =
       value === '' ||
       value === null ||
@@ -911,9 +959,115 @@ isSector
     setError('');
     setSaving(true);
 
+    // ── Modo masivo: varios empleados × rango de fechas ──────────
+    // Se activa cuando el módulo tiene un campo remote-multiselect
+    // y un par de campos de rango de fecha (rangeRole: start/end),
+    // y no estamos editando un registro existente.
+    const multiField = fields.find(f => f.type === 'remote-multiselect');
+    const rangeStartField = fields.find(f => f.rangeRole === 'start');
+    const rangeEndField = fields.find(f => f.rangeRole === 'end');
+    const isBulkMode = !isEdit && multiField && rangeStartField && rangeEndField;
+
+    if (isBulkMode) {
+      const employeeIds = Array.isArray(form[multiField.name])
+        ? form[multiField.name]
+        : [];
+
+      const dateList = [];
+      const cursor = new Date(`${form[rangeStartField.name]}T00:00:00`);
+      const last = new Date(`${form[rangeEndField.name]}T00:00:00`);
+
+      while (cursor <= last) {
+        dateList.push(cursor.toISOString().slice(0, 10));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const otherFields = fields.filter(
+        f =>
+          f.name !== multiField.name &&
+          f.name !== rangeStartField.name &&
+          f.name !== rangeEndField.name
+      );
+
+      const baseBody = {};
+      otherFields.forEach(field => {
+        if (field.omitOnSubmit) return;
+        baseBody[field.name] = normalizeValueForSubmit(field);
+      });
+
+      let successCount = 0;
+      let failCount = 0;
+      let lastErrorMsg = '';
+
+      for (const empId of employeeIds) {
+        for (const dateStr of dateList) {
+          const body = {
+            ...baseBody,
+            [multiField.name]:
+              multiField.valueType === 'string' ? String(empId) : Number(empId),
+            [rangeStartField.rangeTarget]: dateStr,
+          };
+
+          try {
+            const res = await apiFetch(`${API}${endpoint}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+
+            const json = await res.json();
+
+            if (json.ok === true || json.success === true) {
+              successCount += 1;
+            } else {
+              failCount += 1;
+              lastErrorMsg = json.mensaje ?? json.message ?? 'Error al guardar';
+            }
+          } catch {
+            failCount += 1;
+            lastErrorMsg = 'Error de conexión';
+          }
+        }
+      }
+
+      setSaving(false);
+
+      if (failCount === 0) {
+        onSaved();
+      } else if (successCount > 0) {
+        setError(
+          `Se crearon ${successCount} registro(s) correctamente, pero ${failCount} fallaron. ${lastErrorMsg}`
+        );
+        onSaved();
+      } else {
+        setError(`No se pudo crear ningún registro. ${lastErrorMsg}`);
+      }
+
+      return;
+    }
+
+    // ── Modo normal: un solo registro ─────────────────────────────
     const body = {};
     fields.forEach(field => {
       if (field.omitOnSubmit) return;
+
+      if (field.type === 'remote-multiselect') {
+        const arr = Array.isArray(form[field.name]) ? form[field.name] : [];
+        const first = arr[0];
+        body[field.name] =
+          first === undefined
+            ? null
+            : field.valueType === 'string'
+              ? String(first)
+              : Number(first);
+        return;
+      }
+
+      if (field.rangeTarget) {
+        body[field.rangeTarget] = normalizeValueForSubmit(field);
+        return;
+      }
+
       body[field.name] = normalizeValueForSubmit(field);
     });
 
@@ -1036,7 +1190,9 @@ isSector
 
         <div className={s.body}>
           <form id="crudForm" onSubmit={handleSubmit} noValidate className={s.formGrid}>
-            {fields.map(field => (
+            {fields
+              .filter(field => !(isEdit && field.rangeRole === 'end'))
+              .map(field => (
               <div
                 key={field.name}
                 className={`${s.fieldWrap} ${field.type === 'textarea' ? s.fieldFull : ''} ${
@@ -1112,7 +1268,9 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
 }`}
               >
                 <label className={s.label}>
-                  <span>{field.label}</span>
+                  <span>
+                    {isEdit && field.rangeRole === 'start' ? 'Fecha' : field.label}
+                  </span>
                   {field.required && <span className={s.req}>*</span>}
                 </label>
 
@@ -1129,6 +1287,55 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                       </option>
                     ))}
                   </select>
+                ) : field.type === 'remote-multiselect' ? (
+                  <div
+                    className={`${s.input} ${fieldErrors[field.name] ? s.inputError : ''}`}
+                    style={{
+                      maxHeight: 160,
+                      overflowY: 'auto',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    {loadingOptions[field.name] ? (
+                      <span className={s.hint}>Cargando opciones...</span>
+                    ) : getDependentOptions(field).length === 0 ? (
+                      <span className={s.hint}>No hay opciones disponibles</span>
+                    ) : (
+                      getDependentOptions(field).map(option => {
+                        const selected = Array.isArray(form[field.name])
+                          ? form[field.name]
+                          : [];
+                        const checked = selected.some(
+                          v => String(v) === String(option.value)
+                        );
+
+                        return (
+                          <label
+                            key={`${field.name}-${option.value}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              cursor: 'pointer',
+                              fontWeight: 400,
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                toggleMultiSelect(field.name, option.value)
+                              }
+                            />
+                            <span>{option.label}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 ) : field.type === 'remote-select' ? (
                   <select
                     value={form[field.name] === null ? '' : String(form[field.name] ?? '')}
