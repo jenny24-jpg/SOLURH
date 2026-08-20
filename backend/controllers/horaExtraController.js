@@ -70,7 +70,7 @@ const listarPorEmpleado = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, horas, motivo } = req.body;
+  const { empleado_id, fecha, horas, motivo, tipo_hora_extra } = req.body;
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -86,9 +86,9 @@ const insertar = async (req, res) => {
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, created_at)
-       VALUES ($1,$2,$3,$4,false, NOW()) RETURNING id`,
-      [Number(empleado_id), fecha, Number(horas), motivo || null]
+      `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra, created_at)
+       VALUES ($1,$2,$3,$4,false,$5, NOW()) RETURNING id`,
+      [Number(empleado_id), fecha, Number(horas), motivo || null, tipo_hora_extra || 'Diurna']
     );
 
     await registrarAuditoria(conn, {
@@ -139,7 +139,7 @@ const cambiarAprobacion = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_hora_extra } = req.params;
-  const { fecha, horas, motivo } = req.body;
+  const { fecha, horas, motivo, tipo_hora_extra } = req.body;
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
@@ -152,8 +152,8 @@ const actualizar = async (req, res) => {
   try {
     conn = await getConnection();
     await conn.query(
-      `UPDATE horas_extras SET fecha=$1, horas=$2, motivo=$3 WHERE id=$4`,
-      [fecha, Number(horas), motivo || null, Number(id_hora_extra)]
+      `UPDATE horas_extras SET fecha=$1, horas=$2, motivo=$3, tipo_hora_extra=$4 WHERE id=$5`,
+      [fecha, Number(horas), motivo || null, tipo_hora_extra || 'Diurna', Number(id_hora_extra)]
     );
 
     await registrarAuditoria(conn, {

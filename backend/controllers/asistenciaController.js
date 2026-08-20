@@ -9,21 +9,29 @@ function usuarioAuditoria(req) {
 }
 
 const SELECT_BASE = `
-  SELECT a.*, e.nombres, e.apellidos, c.nombre AS cliente, s.nombre AS supervisor,
-         he.horas AS horas_extra
+  SELECT a.id, a.empleado_id,
+         a.fecha, e.nombres, e.apellidos,
+         a.hora_entrada, a.hora_salida,
+         he.horas AS horas_extra, he.tipo_hora_extra,
+         e.cliente_id, c.nombre AS cliente, s.nombre AS supervisor,
+         a.encargado_area_id, ea.nombre AS encargado_area, ea.area AS area,
+         a.estado, a.observaciones, a.jornada, a.created_at
   FROM asistencias a
   LEFT JOIN empleados e ON e.id = a.empleado_id
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
   LEFT JOIN horas_extras he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
+  LEFT JOIN encargados_area ea ON ea.id = a.encargado_area_id
 `;
 
 // ── Helper: crea, actualiza o elimina el registro de horas extra
 // vinculado a un empleado + fecha, según el valor recibido ──────
-async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, usuarioId, usuarioNombre }) {
+async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, tipo_hora_extra, usuarioId, usuarioNombre }) {
   const horas = horas_extra !== undefined && horas_extra !== null && horas_extra !== ''
     ? Number(horas_extra)
     : 0;
+
+  const tipo = tipo_hora_extra || 'Diurna';
 
   const existente = await conn.query(
     `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2`,
@@ -33,14 +41,14 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, us
   if (horas > 0) {
     if (existente.rows.length > 0) {
       await conn.query(
-        `UPDATE horas_extras SET horas = $1 WHERE id = $2`,
-        [horas, existente.rows[0].id]
+        `UPDATE horas_extras SET horas = $1, tipo_hora_extra = $2 WHERE id = $3`,
+        [horas, tipo, existente.rows[0].id]
       );
     } else {
       await conn.query(
-        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false]
+        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false, tipo]
       );
     }
 
@@ -136,7 +144,7 @@ const listarPorEmpleado = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra } = req.body;
+  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra, tipo_hora_extra, encargado_area_id } = req.body;
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -149,8 +157,8 @@ const insertar = async (req, res) => {
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `INSERT INTO asistencias (empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6, NOW()) RETURNING id`,
+      `INSERT INTO asistencias (empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, encargado_area_id, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, NOW()) RETURNING id`,
       [
         Number(empleado_id),
         fecha,
@@ -158,6 +166,7 @@ const insertar = async (req, res) => {
         hora_salida || null,
         estado || 'PRESENTE',
         observaciones || null,
+        encargado_area_id || null,
       ]
     );
 
@@ -173,6 +182,7 @@ const insertar = async (req, res) => {
       empleado_id,
       fecha,
       horas_extra,
+      tipo_hora_extra,
       ...usuarioAuditoria(req),
     });
 
@@ -219,7 +229,7 @@ const marcarSalida = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_asistencia } = req.params;
-  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra } = req.body;
+  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra, tipo_hora_extra, encargado_area_id } = req.body;
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
@@ -236,8 +246,8 @@ const actualizar = async (req, res) => {
     }
 
     await conn.query(
-      `UPDATE asistencias SET fecha=$1, hora_entrada=$2, hora_salida=$3, estado=$4, observaciones=$5 WHERE id=$6`,
-      [fecha, hora_entrada || null, hora_salida || null, estado || 'PRESENTE', observaciones || null, Number(id_asistencia)]
+      `UPDATE asistencias SET fecha=$1, hora_entrada=$2, hora_salida=$3, estado=$4, observaciones=$5, encargado_area_id=$6 WHERE id=$7`,
+      [fecha, hora_entrada || null, hora_salida || null, estado || 'PRESENTE', observaciones || null, encargado_area_id || null, Number(id_asistencia)]
     );
 
     await registrarAuditoria(conn, {
@@ -253,6 +263,7 @@ const actualizar = async (req, res) => {
         empleado_id: empleadoIdFinal,
         fecha,
         horas_extra,
+        tipo_hora_extra,
         ...usuarioAuditoria(req),
       });
     }

@@ -50,6 +50,7 @@ app.use(verificarToken);
 app.use('/api/cliente', clienteRoutes);
 app.use('/api/empleado', empleadoRoutes);
 app.use('/api/supervisor', supervisorRoutes);
+app.use('/api/encargado-area', require('./routes/encargadoAreaRoutes'));
 app.use('/api/auditoria', auditoriaRoutes);
 app.use('/api/horas-extra', require('./routes/horaextraRoute'));
 app.use('/api/asistencia', require('./routes/asistenciaRoutes'));

@@ -11,6 +11,9 @@
     nit: 'NIT',
     cliente_id: 'Cliente',
     supervisor_id: 'Supervisor',
+    area: 'Área',
+    encargado_area_id: 'Encargado de área',
+    encargado_area: 'Encargado de área',
     jornada: 'Jornada',
     fecha_ingreso: 'Fecha de ingreso',
     salario: 'Salario',
@@ -53,7 +56,7 @@
   export const HIDDEN_COLS = new Set([
     'id', 'aprobado', 'salario',
     'created_at', 'fecha_creacion', 'correo', 'telefono', 'fecha_baja', 'motivo_baja', 'fotografia',
-    'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 
+    'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 'encargado_area_id',
   ]);
 
   export const DASHBOARD_QUICK_ACCESS = [
@@ -79,6 +82,11 @@
     { value: 'PRESENTE', label: 'Presente' },
     { value: 'TARDE', label: 'Tarde' },
     { value: 'AUSENTE', label: 'Ausente' },
+  ];
+
+  export const TIPO_HORA_EXTRA_OPTIONS = [
+    { value: 'Diurna', label: 'Diurna' },
+    { value: 'Nocturna', label: 'Nocturna' },
   ];
 
   export const APROBADO_OPTIONS = [
@@ -132,6 +140,25 @@
       ],
     },
 
+  'encargados-area': {
+      title: 'Encargados de Área',
+      endpoint: '/encargado-area',
+      icon: 'engineering',
+      fields: [
+        { name: 'nombre', label: 'Nombre del encargado', type: 'text', required: true, onlyLetters: true, minLength: 3 },
+        { name: 'area', label: 'Área', type: 'text', required: true, minLength: 2, maxLength: 100 },
+        {
+          name: 'cliente_id',
+          label: 'Cliente',
+          type: 'remote-select',
+          required: true,
+          optionSource: '/cliente',
+          optionValue: 'id',
+          optionLabel: 'nombre',
+        },
+      ],
+    },
+
 
 
     empleados: {
@@ -161,7 +188,7 @@
           optionValue: 'id',
           optionLabel: 'nombre',
         },
-        
+        { name: 'jornada', label: 'Jornada', type: 'select', required: true, options: JORNADA_OPTIONS },
         { name: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date', required: true, noFutureDate: true },
         {
   name: 'banco',
@@ -203,10 +230,33 @@
       },
       { name: 'fecha_inicio', label: 'Fecha inicio', type: 'date', required: true, noFutureDate: true, rangeTarget: 'fecha', rangeRole: 'start' },
       { name: 'fecha_fin', label: 'Fecha fin', type: 'date', required: true, noFutureDate: true, minDateField: 'fecha_inicio', rangeTarget: 'fecha', rangeRole: 'end' },
+      {
+        name: 'cliente_id',
+        label: 'Cliente',
+        type: 'remote-select',
+        required: true,
+        optionSource: '/cliente',
+        optionValue: 'id',
+        optionLabel: 'nombre',
+        omitOnSubmit: true,
+      },
+      {
+        name: 'encargado_area_id',
+        label: 'Encargado de área',
+        type: 'remote-select',
+        optionSource: '/encargado-area',
+        optionValue: 'id',
+        labelTemplate: ['nombre', 'area'],
+        dependsOn: {
+          field: 'cliente_id',
+          queryParam: 'cliente_id',
+        },
+      },
       { name: 'hora_entrada', label: 'Hora entrada', type: 'time' },
       { name: 'hora_salida', label: 'Hora salida', type: 'time' },
       { name: 'estado', label: 'Estado', type: 'select', options: ESTADO_ASISTENCIA_OPTIONS },
      { name: 'horas_extra', label: 'Horas extra (si aplica)', type: 'number', min: 0 },
+      { name: 'tipo_hora_extra', label: 'Tipo de hora extra', type: 'select', options: TIPO_HORA_EXTRA_OPTIONS },
       { name: 'observaciones', label: 'Observaciones', type: 'textarea', maxLength: 500 },
     ],
   },
@@ -227,6 +277,7 @@
         },
         { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
         { name: 'horas', label: 'Horas', type: 'number', required: true, min: 0.5 },
+        { name: 'tipo_hora_extra', label: 'Tipo de hora extra', type: 'select', options: TIPO_HORA_EXTRA_OPTIONS },
         { name: 'motivo', label: 'Motivo', type: 'textarea', required: true, minLength: 5, maxLength: 300 },
         { name: 'aprobado', label: 'Aprobado', type: 'select', options: APROBADO_OPTIONS },
       ],
@@ -312,6 +363,7 @@
       entries: [
         { key: 'supervisores', label: 'Supervisores', icon: 'supervisor_account' },
         { key: 'clientes', label: 'Clientes', icon: 'business' },
+        { key: 'encargados-area', label: 'Encargados de área', icon: 'engineering' },
       ],
     },
     {
@@ -335,6 +387,7 @@
   export const MODULE_PK = {
     supervisores: 'id',
     clientes: 'id',
+    'encargados-area': 'id',
     empleados: 'id',
     asistencias: 'id',
     'horas-extras': 'id',
