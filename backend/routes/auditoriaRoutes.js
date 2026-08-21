@@ -19,8 +19,8 @@ const {
 // Todas las rutas de auditoría protegidas
 router.use(verificarToken);
 
-// Solo Super Admin y Admin pueden ver auditoría
-router.use(requiereRol(2));
+// Solo Administrador puede ver auditoría
+router.use(requiereRol(1));
 
 router.get('/', listar);
 router.get('/recientes', listarRecientes);

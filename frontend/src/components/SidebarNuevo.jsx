@@ -138,7 +138,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
       </div>
 
       <div className={s.footer}>
-        {Number(usuario?.ROL_ID ?? usuario?.rol_id ?? 3) <= 2 && (
+        {isAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'historial-cambios' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('historial-cambios')}
@@ -148,7 +148,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
             <span>Historial de cambios</span>
           </button>
         )}
-        {Number(usuario?.ROL_ID ?? usuario?.rol_id ?? 3) <= 2 && (
+        {isAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'reporte-historial-estados' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('reporte-historial-estados')}
@@ -158,7 +158,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
             <span>Reporte historial estados</span>
           </button>
         )}
-        {(usuario?.ROL_ID === 1 || usuario?.rol_id === 1) && (
+        {isAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'gestion-usuarios' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('gestion-usuarios')}
