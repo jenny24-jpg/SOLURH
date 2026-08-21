@@ -360,6 +360,7 @@
   export const NAV_SECTIONS = [
     {
       title: 'Catálogos',
+      adminOnly: true,
       entries: [
         { key: 'supervisores', label: 'Supervisores', icon: 'supervisor_account' },
         { key: 'clientes', label: 'Clientes', icon: 'business' },
@@ -377,6 +378,7 @@
     },
     {
       title: 'Registros',
+      adminOnly: true,
       entries: [
         { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history' },
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },

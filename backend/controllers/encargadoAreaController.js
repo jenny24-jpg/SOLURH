@@ -14,6 +14,9 @@ const listar = async (req, res) => {
   try {
     conn = await getConnection();
 
+    const esSupervisor = Number(req.usuario?.rol_id) === 2;
+    const supervisorId = req.usuario?.supervisor_id;
+
     let query;
     let params;
 
@@ -21,9 +24,21 @@ const listar = async (req, res) => {
       query = `SELECT ea.*, c.nombre AS cliente_nombre
                 FROM encargados_area ea
                 LEFT JOIN clientes c ON c.id = ea.cliente_id
-                WHERE ea.estado = 'ACTIVO' AND ea.cliente_id = $1
-                ORDER BY ea.nombre`;
+                WHERE ea.estado = 'ACTIVO' AND ea.cliente_id = $1`;
       params = [Number(cliente_id)];
+
+      if (esSupervisor && supervisorId) {
+        query += ` AND c.supervisor_id = $2`;
+        params.push(Number(supervisorId));
+      }
+      query += ` ORDER BY ea.nombre`;
+    } else if (esSupervisor && supervisorId) {
+      query = `SELECT ea.*, c.nombre AS cliente_nombre
+                FROM encargados_area ea
+                LEFT JOIN clientes c ON c.id = ea.cliente_id
+                WHERE ea.estado = 'ACTIVO' AND c.supervisor_id = $1
+                ORDER BY ea.nombre`;
+      params = [Number(supervisorId)];
     } else {
       query = `SELECT ea.*, c.nombre AS cliente_nombre
                 FROM encargados_area ea

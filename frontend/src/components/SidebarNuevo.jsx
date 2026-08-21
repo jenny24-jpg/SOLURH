@@ -8,6 +8,11 @@ const DEFAULT_OPEN = []; // Todas cerradas al iniciar
 export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
   const { logout, displayName, rolLabel, isAdmin, usuario } = useAuth();
 
+  const visibleSections = useMemo(
+    () => NAV_SECTIONS.filter(sec => !sec.adminOnly || isAdmin),
+    [isAdmin]
+  );
+
   const [openSections, setOpenSections] = useState(() => {
     const initial = {};
     NAV_SECTIONS.forEach(sec => {
@@ -19,8 +24,8 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
   });
 
   const allEntries = useMemo(
-    () => NAV_SECTIONS.flatMap(sec => sec.entries),
-    []
+    () => visibleSections.flatMap(sec => sec.entries),
+    [visibleSections]
   );
 
   const toggleSection = title => {
@@ -94,7 +99,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
       </div>
 
       <div className={s.nav}>
-        {NAV_SECTIONS.map(section => {
+        {visibleSections.map(section => {
           const isOpen = openSections[section.title];
           const hasActive = section.entries.some(entry => entry.key === activeKey);
 
