@@ -9,7 +9,14 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
   const { logout, displayName, rolLabel, isAdmin, usuario } = useAuth();
 
   const visibleSections = useMemo(
-    () => NAV_SECTIONS.filter(sec => !sec.adminOnly || isAdmin),
+    () =>
+      NAV_SECTIONS
+        .filter(sec => !sec.adminOnly || isAdmin)
+        .map(sec => ({
+          ...sec,
+          entries: sec.entries.filter(entry => !entry.adminOnly || isAdmin),
+        }))
+        .filter(sec => sec.entries.length > 0),
     [isAdmin]
   );
 

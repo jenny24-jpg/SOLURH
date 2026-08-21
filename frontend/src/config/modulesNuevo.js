@@ -360,10 +360,9 @@
   export const NAV_SECTIONS = [
     {
       title: 'Catálogos',
-      adminOnly: true,
       entries: [
-        { key: 'supervisores', label: 'Supervisores', icon: 'supervisor_account' },
-        { key: 'clientes', label: 'Clientes', icon: 'business' },
+        { key: 'supervisores', label: 'Supervisores', icon: 'supervisor_account', adminOnly: true },
+        { key: 'clientes', label: 'Clientes', icon: 'business', adminOnly: true },
         { key: 'encargados-area', label: 'Encargados de área', icon: 'engineering' },
       ],
     },
