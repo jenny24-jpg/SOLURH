@@ -192,15 +192,17 @@ export function AuthProvider({ children }) {
     try { return sessionStorage.getItem('ga_token') || null; } catch { return null; }
   };
 
-  const isAdmin     = (usuario?.ROL_ID ?? usuario?.rol_id ?? 3) <= 2;
+  const rolIdActual = usuario?.ROL_ID ?? usuario?.rol_id ?? 3;
+  const isAdmin      = rolIdActual === 1;
+  const isSupervisor = rolIdActual === 2;
   const displayName = usuario?.NOMBRES ?? usuario?.nombres ?? usuario?.USERNAME ?? usuario?.username ?? 'Usuario';
-  const rolLabel    = isAdmin ? 'Administrador' : 'Tecnico de campo';
+  const rolLabel    = isAdmin ? 'Administrador' : isSupervisor ? 'Supervisor' : 'Empleado';
 
   return (
     <AuthCtx.Provider value={{
       usuario, loading, iniciando,
       isLoggedIn: !!usuario,
-      isAdmin, displayName, rolLabel,
+      isAdmin, isSupervisor, displayName, rolLabel,
       login, registrar, logout, actualizarPerfil, getToken,
       API,
       // Helper exportado para que cualquier componente pueda usarlo
