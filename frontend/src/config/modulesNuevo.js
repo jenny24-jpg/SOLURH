@@ -378,9 +378,8 @@
     },
     {
       title: 'Registros',
-      adminOnly: true,
       entries: [
-        { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history' },
+        { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history', adminOnly: true },
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },
       ],
     },
