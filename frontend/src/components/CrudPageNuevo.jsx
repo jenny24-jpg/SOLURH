@@ -222,7 +222,7 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     const v = String(formattedValue ?? '—');
     const k = col.toLowerCase();
 
-    const isBadge = k.includes('riesgo') || k === 'tipo_plaga' || k === 'es_productivo';
+    const isBadge = k.includes('riesgo') || k === 'tipo_plaga' || k === 'es_productivo' || k === 'estado_empleado';
 
     if (!isBadge) {
       return (
@@ -234,8 +234,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     let cls = s.badgeN;
 
-    if (['ALTO', 'PLAGA', 'S'].includes(v)) cls = s.badgeD;
-    if (['BAJO', 'N'].includes(v)) cls = s.badgeS;
+    if (['ALTO', 'PLAGA', 'S', 'INACTIVO'].includes(v)) cls = s.badgeD;
+    if (['BAJO', 'N', 'ACTIVO'].includes(v)) cls = s.badgeS;
     if (v === 'MEDIO') cls = s.badgeW;
 
     return <span className={cls}>{v}</span>;

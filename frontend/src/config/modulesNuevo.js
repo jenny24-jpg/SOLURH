@@ -7,6 +7,7 @@
     telefono: 'Teléfono',
     correo: 'Correo',
     estado: 'Estado',
+    estado_empleado: 'Estado del empleado',
     dpi: 'DPI',
     nit: 'NIT',
     cliente_id: 'Cliente',
