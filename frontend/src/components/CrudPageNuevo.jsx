@@ -58,6 +58,29 @@ const isDateColumn = (col) => {
   );
 };
 
+
+// Lee respuestas JSON sin romper la aplicación cuando el servidor devuelve HTML o una respuesta vacía.
+async function readResponseBody(res) {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+}
+
+function getRowValue(row, field) {
+  if (!row || !field) return undefined;
+
+  const exactKey = Object.keys(row).find(
+    key => key.toLowerCase() === String(field).toLowerCase()
+  );
+
+  return exactKey ? row[exactKey] : undefined;
+}
+
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
   const { title, endpoint, icon = 'dataset' } = cfg;
@@ -126,9 +149,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       } else {
         setError(json.mensaje ?? json.message ?? 'Error al cargar los datos');
       }
-    } catch (err) {
-      console.error('fetchData falló:', err);
-      setError(err.message || 'No se pudo conectar con el servidor. Verifica que el backend esté activo.');
+    } catch {
+      setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.');
     } finally {
       setLoading(false);
     }
@@ -148,20 +170,48 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       )
     : [];
 
+  // Obtiene correctamente la llave primaria aunque el backend devuelva ID_CLIENTE,
+  // id_cliente, ID_EMPLEADO, etc.
   const pkVal = row => {
+    if (!row || typeof row !== 'object') return null;
+
     const pkField = MODULE_PK[moduleKey];
+    const candidates = [
+      pkField,
+      'id',
+      `id_${moduleKey.replace(/-/g, '_')}`,
+    ].filter(Boolean);
 
-    if (pkField && row[pkField] !== undefined) return row[pkField];
-
-    for (const k of Object.keys(row)) {
-      if (k.toLowerCase() === 'id') return row[k];
+    for (const field of candidates) {
+      const value = getRowValue(row, field);
+      if (value !== undefined && value !== null && value !== '') return value;
     }
 
-    for (const k of Object.keys(row)) {
-      if (k.toLowerCase().startsWith('id_') || k.toLowerCase().endsWith('_id')) {
-        return row[k];
-      }
+    // Prioridad para llaves comunes de la API.
+    const preferred = [
+      'id_cliente',
+      'id_empleado',
+      'id_supervisor',
+      'id_encargado_area',
+      'id_asistencia',
+      'id_hora_extra',
+      'id_documento',
+      'id_foto',
+      'id_historial',
+      'id_usuario',
+    ];
+
+    for (const field of preferred) {
+      const value = getRowValue(row, field);
+      if (value !== undefined && value !== null && value !== '') return value;
     }
+
+    const dynamicKey = Object.keys(row).find(key => {
+      const normalized = key.toLowerCase();
+      return normalized.startsWith('id_') || normalized.endsWith('_id');
+    });
+
+    if (dynamicKey) return row[dynamicKey];
 
     return null;
   };
@@ -195,37 +245,54 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const handleDelete = async row => {
     const id = pkVal(row);
 
-    if (!id) {
-      alert('No se puede identificar el registro');
+    if (id === null || id === undefined || id === '') {
+      alert('No se puede identificar el ID del registro que deseas eliminar.');
       return;
     }
 
-    try {
-      const res = await apiFetch(`${API}${endpoint}/${id}`, { method: 'DELETE' });
+    const baseEndpoint = String(endpoint || '').replace(/\/$/, '');
+    const deleteUrl = `${API}${baseEndpoint}/${encodeURIComponent(String(id))}`;
 
-      // La respuesta puede no ser JSON válido (ej. 404/502 devolviendo HTML).
-      // Intentamos parsear igual, pero sin dejar que un fallo de parseo
-      // se confunda con un error de conexión.
-      let json = null;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error('Respuesta no es JSON válido al eliminar:', res.status, parseErr);
-        alert(`Error del servidor (status ${res.status}). Revisa la consola/Network para más detalle.`);
+    try {
+      const res = await apiFetch(deleteUrl, {
+        method: 'DELETE',
+        headers: { Accept: 'application/json' },
+      });
+
+      const json = await readResponseBody(res);
+
+      // Algunos controladores responden 200 con ok/success y otros pueden responder 204.
+      const deleted =
+        res.ok &&
+        (res.status === 204 || json.ok === true || json.success === true || !Object.keys(json).length);
+
+      if (deleted) {
+        setConfirmRow(null);
+        setData(prev => prev.filter(item => String(pkVal(item)) !== String(id)));
+
+        window.dispatchEvent(new Event('plagas-actualizadas'));
+        window.dispatchEvent(new Event('arbol_actualizado'));
         return;
       }
 
-      if (res.ok && (json.ok === true || json.success === true)) {
-        setConfirmRow(null);
-        fetchData();
-      } else {
-        alert(json.mensaje ?? json.message ?? `Error al eliminar (status ${res.status})`);
+      if (res.status === 404) {
+        alert(
+          `No se encontró la ruta para eliminar este registro.\n\n` +
+          `URL solicitada: ${deleteUrl}\n\n` +
+          `El frontend está funcionando, pero el backend publicado no tiene disponible esa ruta DELETE o está desactualizado.`
+        );
+        return;
       }
-    } catch (err) {
-      // Este catch solo se dispara ante un fallo real de red/CORS
-      // (fetch() no pudo completarse), no ante errores del servidor.
-      console.error('handleDelete falló:', err);
-      alert(err.message || 'Error de conexión al eliminar. Revisa la consola para más detalle.');
+
+      alert(
+        json.mensaje ||
+        json.message ||
+        json.error ||
+        `No se pudo eliminar el registro (status ${res.status}).`
+      );
+    } catch (error) {
+      console.error('Error eliminando registro:', error);
+      alert('Error de conexión al eliminar el registro.');
     }
   };
 
