@@ -58,29 +58,6 @@ const isDateColumn = (col) => {
   );
 };
 
-
-// Lee respuestas JSON sin romper la aplicación cuando el servidor devuelve HTML o una respuesta vacía.
-async function readResponseBody(res) {
-  const text = await res.text();
-  if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
-  }
-}
-
-function getRowValue(row, field) {
-  if (!row || !field) return undefined;
-
-  const exactKey = Object.keys(row).find(
-    key => key.toLowerCase() === String(field).toLowerCase()
-  );
-
-  return exactKey ? row[exactKey] : undefined;
-}
-
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
   const { title, endpoint, icon = 'dataset' } = cfg;
@@ -89,8 +66,6 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filtroSupervisor, setFiltroSupervisor] = useState('');
-const [filtroArea, setFiltroArea] = useState('');
   const [modal, setModal] = useState(null);
   const [confirmRow, setConfirmRow] = useState(null);
   const [page, setPage] = useState(1);
@@ -163,8 +138,8 @@ const [filtroArea, setFiltroArea] = useState('');
   }, [fetchData]);
 
   useEffect(() => {
-  setPage(1);
-}, [search, filtroSupervisor, filtroArea]);
+    setPage(1);
+  }, [search]);
 
   const cols = data.length > 0
     ? Object.keys(data[0]).filter(
@@ -172,105 +147,31 @@ const [filtroArea, setFiltroArea] = useState('');
       )
     : [];
 
-  // Obtiene correctamente la llave primaria aunque el backend devuelva ID_CLIENTE,
-  // id_cliente, ID_EMPLEADO, etc.
   const pkVal = row => {
-    if (!row || typeof row !== 'object') return null;
-
     const pkField = MODULE_PK[moduleKey];
-    const candidates = [
-      pkField,
-      'id',
-      `id_${moduleKey.replace(/-/g, '_')}`,
-    ].filter(Boolean);
 
-    for (const field of candidates) {
-      const value = getRowValue(row, field);
-      if (value !== undefined && value !== null && value !== '') return value;
+    if (pkField && row[pkField] !== undefined) return row[pkField];
+
+    for (const k of Object.keys(row)) {
+      if (k.toLowerCase() === 'id') return row[k];
     }
 
-    // Prioridad para llaves comunes de la API.
-    const preferred = [
-      'id_cliente',
-      'id_empleado',
-      'id_supervisor',
-      'id_encargado_area',
-      'id_asistencia',
-      'id_hora_extra',
-      'id_documento',
-      'id_foto',
-      'id_historial',
-      'id_usuario',
-    ];
-
-    for (const field of preferred) {
-      const value = getRowValue(row, field);
-      if (value !== undefined && value !== null && value !== '') return value;
+    for (const k of Object.keys(row)) {
+      if (k.toLowerCase().startsWith('id_') || k.toLowerCase().endsWith('_id')) {
+        return row[k];
+      }
     }
-
-    const dynamicKey = Object.keys(row).find(key => {
-      const normalized = key.toLowerCase();
-      return normalized.startsWith('id_') || normalized.endsWith('_id');
-    });
-
-    if (dynamicKey) return row[dynamicKey];
 
     return null;
   };
-  // ── Filtros disponibles para Asistencias ─────────────
 
-const supervisoresDisponibles = useMemo(() => {
-  return [...new Set(
-    data
-      .map(r => r.supervisor)
-      .filter(Boolean)
-  )].sort();
-}, [data]);
-
-
-const areasDisponibles = useMemo(() => {
-  return [...new Set(
-    data
-      .filter(r =>
-        !filtroSupervisor ||
-        String(r.supervisor) === String(filtroSupervisor)
-      )
-      .map(r => r.area)
-      .filter(Boolean)
-  )].sort();
-}, [data, filtroSupervisor]);
-
-  const filtered = useMemo(() => {
-  let resultados = [...data];
-
-  // 🔎 Búsqueda general
-  if (search.trim()) {
-    const texto = search.toLowerCase();
-
-    resultados = resultados.filter(r =>
-      Object.values(r).some(v =>
-        String(v ?? '').toLowerCase().includes(texto)
-      )
-    );
-  }
-
-  // 👤 Filtrar por supervisor
-  if (moduleKey === 'asistencias' && filtroSupervisor) {
-    resultados = resultados.filter(r =>
-      String(r.supervisor ?? '') === String(filtroSupervisor)
-    );
-  }
-
-  // 🏢 Filtrar por área
-  if (moduleKey === 'asistencias' && filtroArea) {
-    resultados = resultados.filter(r =>
-      String(r.area ?? '') === String(filtroArea)
-    );
-  }
-
-  return resultados;
-
-}, [data, search, moduleKey, filtroSupervisor, filtroArea]);
+  const filtered = useMemo(() =>
+    search.trim()
+      ? data.filter(r => Object.values(r).some(v =>
+          String(v ?? '').toLowerCase().includes(search.toLowerCase())
+        ))
+      : data,
+  [data, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -293,54 +194,26 @@ const areasDisponibles = useMemo(() => {
   const handleDelete = async row => {
     const id = pkVal(row);
 
-    if (id === null || id === undefined || id === '') {
-      alert('No se puede identificar el ID del registro que deseas eliminar.');
+    if (!id) {
+      alert('No se puede identificar el registro');
       return;
     }
 
-    const baseEndpoint = String(endpoint || '').replace(/\/$/, '');
-    const deleteUrl = `${API}${baseEndpoint}/${encodeURIComponent(String(id))}`;
-
     try {
-      const res = await apiFetch(deleteUrl, {
-        method: 'DELETE',
-        headers: { Accept: 'application/json' },
-      });
+      const res = await apiFetch(`${API}${endpoint}/${id}`, { method: 'DELETE' });
+      const json = await res.json();
 
-      const json = await readResponseBody(res);
-
-      // Algunos controladores responden 200 con ok/success y otros pueden responder 204.
-      const deleted =
-        res.ok &&
-        (res.status === 204 || json.ok === true || json.success === true || !Object.keys(json).length);
-
-      if (deleted) {
+      if (json.ok === true || json.success === true) {
         setConfirmRow(null);
-        setData(prev => prev.filter(item => String(pkVal(item)) !== String(id)));
+        fetchData();
 
         window.dispatchEvent(new Event('plagas-actualizadas'));
         window.dispatchEvent(new Event('arbol_actualizado'));
-        return;
+      } else {
+        alert(json.mensaje ?? json.message ?? 'Error al eliminar');
       }
-
-      if (res.status === 404) {
-        alert(
-          `No se encontró la ruta para eliminar este registro.\n\n` +
-          `URL solicitada: ${deleteUrl}\n\n` +
-          `El frontend está funcionando, pero el backend publicado no tiene disponible esa ruta DELETE o está desactualizado.`
-        );
-        return;
-      }
-
-      alert(
-        json.mensaje ||
-        json.message ||
-        json.error ||
-        `No se pudo eliminar el registro (status ${res.status}).`
-      );
-    } catch (error) {
-      console.error('Error eliminando registro:', error);
-      alert('Error de conexión al eliminar el registro.');
+    } catch {
+      alert('Error de conexión al eliminar');
     }
   };
 
@@ -425,32 +298,31 @@ const areasDisponibles = useMemo(() => {
               </div>
             </div>
 
-            <button
-              className={s.refreshBtn}
-              onClick={() => {
-                setPageTourRun(false);
-                setTimeout(() => setPageTourRun(true), 100);
-              }}
-              type="button"
-            >
-              <span className="material-icons">help_outline</span>
-              <span className={s.btnLabel}>Mini tutorial</span>
-            </button>
-
             <div className={s.titleActions}>
-              <button className={s.refreshBtn} onClick={fetchData} title="Actualizar" type="button">
-                <span className={s.iconCircle}>
-                  <span className="material-icons">refresh</span>
-                </span>
+              <button
+                className={s.iconBtn}
+                onClick={() => {
+                  setPageTourRun(false);
+                  setTimeout(() => setPageTourRun(true), 100);
+                }}
+                title="Mini tutorial"
+                type="button"
+              >
+                <span className="material-icons">help_outline</span>
+                <span className={s.btnLabel}>Mini tutorial</span>
+              </button>
+
+              <button className={s.iconBtn} onClick={fetchData} title="Actualizar" type="button">
+                <span className="material-icons">refresh</span>
                 <span className={s.btnLabel}>Actualizar</span>
               </button>
 
               <ExportarBtn data={filtered} cols={cols} title={title} />
 
+              <span className={s.actionsDivider} />
+
               <button className={`${s.btnAdd} tour-agregar`} onClick={() => setModal('new')} type="button">
-                <span className={s.iconCircle}>
-                  <span className="material-icons">add</span>
-                </span>
+                <span className="material-icons">add</span>
                 <span className={s.btnLabel}>Agregar registro</span>
               </button>
             </div>
@@ -470,46 +342,6 @@ const areasDisponibles = useMemo(() => {
                 </button>
               )}
             </div>
-
-            {moduleKey === 'asistencias' && (
-  <div className={s.filtersWrap}>
-
-    {/* 👤 FILTRO SUPERVISOR */}
-    <select
-      className={s.filterSelect}
-      value={filtroSupervisor}
-      onChange={(e) => {
-        setFiltroSupervisor(e.target.value);
-        setFiltroArea('');
-      }}
-    >
-      <option value="">Todos los supervisores</option>
-
-      {supervisoresDisponibles.map((supervisor) => (
-        <option key={supervisor} value={supervisor}>
-          {supervisor}
-        </option>
-      ))}
-    </select>
-
-
-    {/* 🏢 FILTRO ÁREA */}
-    <select
-      className={s.filterSelect}
-      value={filtroArea}
-      onChange={(e) => setFiltroArea(e.target.value)}
-    >
-      <option value="">Todas las áreas</option>
-
-      {areasDisponibles.map((area) => (
-        <option key={area} value={area}>
-          {area}
-        </option>
-      ))}
-    </select>
-
-  </div>
-)}
 
             <div className={s.statsWrap}>
               <div className={s.counterCard}>
