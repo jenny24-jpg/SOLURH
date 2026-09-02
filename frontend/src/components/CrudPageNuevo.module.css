@@ -111,44 +111,71 @@
 .titleActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
+  padding: 4px;
+  background: rgba(27,42,77,.035);
+  border: 1px solid var(--pergamino-verde);
+  border-radius: 16px;
 }
 
 .btnAdd,
-.refreshBtn,
+.iconBtn,
 .btnRetry,
 .emptyBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border-radius: 14px;
+  gap: 7px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   transition: transform var(--transition), background var(--transition), box-shadow var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.btnAdd .material-icons,
+.iconBtn .material-icons {
+  font-size: 18px;
 }
 
 .btnAdd {
   background: var(--verde-profundo);
   color: #fff;
-  padding: 12px 18px;
-  box-shadow: 0 10px 20px rgba(27,42,77,.14);
+  padding: 0 18px;
+  box-shadow: 0 6px 14px rgba(27,42,77,.20);
 }
 
 .btnAdd:hover {
   background: var(--verde-medio);
   transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(27,42,77,.26);
 }
 
-.refreshBtn {
-  padding: 12px 14px;
+/* Botones secundarios de la barra de acciones (mini tutorial / actualizar) */
+.iconBtn {
+  padding: 0 14px;
+  background: transparent;
+  color: var(--tierra-calida);
+  border: 1px solid transparent;
+}
+
+.iconBtn:hover {
   background: #fff;
   color: var(--verde-profundo);
-  border: 1px solid var(--pergamino-verde);
+  border-color: var(--pergamino-verde);
 }
 
-.refreshBtn:hover {
-  background: var(--fondo-claro);
+.iconBtn .material-icons {
+  color: var(--verde-medio);
+}
+
+.actionsDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--pergamino-verde);
+  margin: 0 2px;
 }
 
 .toolbar {
@@ -197,6 +224,35 @@
 
 .searchWrap button .material-icons {
   font-size: 17px;
+}
+
+.filtersWrap {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.filterSelect {
+  height: 50px;
+  padding: 0 14px;
+  background: #fff;
+  border: 1px solid var(--pergamino-verde);
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--verde-profundo);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.filterSelect:hover {
+  border-color: rgba(27,42,77,.3);
+}
+
+.filterSelect:focus {
+  border-color: rgba(27,42,77,.35);
+  box-shadow: 0 0 0 4px rgba(27,42,77,.07);
 }
 
 .statsWrap {
@@ -539,7 +595,6 @@
 }
 
 /* Botones con fondo oscuro (sólido) → círculo claro */
-.btnAdd .iconCircle,
 .emptyBtn .iconCircle,
 .btnRetry .iconCircle,
 .confirmDelete .iconCircle {
@@ -547,7 +602,6 @@
 }
 
 /* Botones con fondo claro/blanco → círculo azul tenue */
-.refreshBtn .iconCircle,
 .confirmCancel .iconCircle {
   background: rgba(27, 42, 77, 0.10);
 }
@@ -573,6 +627,9 @@
 
   .titleActions {
     justify-content: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
   }
 
   .counterCard {
@@ -612,10 +669,19 @@
   }
 
   .btnAdd,
-  .refreshBtn,
+  .iconBtn,
   .btnRetry,
   .emptyBtn {
     width: 100%;
+  }
+
+  .titleActions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .actionsDivider {
+    display: none;
   }
 }
 
@@ -789,17 +855,21 @@
   .btnLabel { display: none; }
 
   .titleRow { flex-direction: column; align-items: stretch; }
-  .titleActions { flex-direction: row; justify-content: flex-start; width: 100%; }
+  .titleActions { flex-direction: row; justify-content: flex-start; width: 100%; background: none; border: none; padding: 0; }
 
-  .btnAdd, .refreshBtn {
+  .btnAdd, .iconBtn {
     flex: 1;
     justify-content: center;
-    padding: 10px 12px;
+    padding: 0 12px;
   }
+
+  .actionsDivider { display: none; }
 
   /* Toolbar en columna */
   .toolbar { flex-direction: column; gap: 10px; }
   .searchWrap { width: 100%; }
+  .filtersWrap { width: 100%; flex-wrap: wrap; }
+  .filterSelect { flex: 1; min-width: 140px; height: 44px; }
   .statsWrap { width: 100%; justify-content: flex-start; }
   .counterCard { flex: 1; }
 
@@ -892,9 +962,16 @@
 [data-theme="dark"] .table tbody td { color: #e2e8f0 !important; border-color: rgba(255,255,255,0.05) !important; }
 [data-theme="dark"] .table tbody tr:hover { background: rgba(37,99,235,0.05) !important; box-shadow: inset 3px 0 0 #3b82f6 !important; }
 
+/* Filtros de la barra de búsqueda */
+[data-theme="dark"] .filterSelect { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.10) !important; color: #e2e8f0 !important; }
+[data-theme="dark"] .filterSelect:hover { border-color: rgba(255,255,255,0.18) !important; }
+[data-theme="dark"] .filterSelect:focus { border-color: #3b82f6 !important; box-shadow: 0 0 0 4px rgba(59,130,246,0.12) !important; }
+
 /* Buttons */
-[data-theme="dark"] .refreshBtn  { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.10) !important; color: #94a3b8 !important; }
-[data-theme="dark"] .refreshBtn:hover { background: rgba(255,255,255,0.08) !important; }
+[data-theme="dark"] .titleActions { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; }
+[data-theme="dark"] .iconBtn  { color: #94a3b8 !important; }
+[data-theme="dark"] .iconBtn:hover { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.10) !important; color: #e2e8f0 !important; }
+[data-theme="dark"] .actionsDivider { background: rgba(255,255,255,0.10) !important; }
 [data-theme="dark"] .btnRetry    { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.10) !important; color: #94a3b8 !important; }
 
 /* ══ DARK MODE — :global() so hashed classes respond to data-theme ══ */
@@ -939,6 +1016,11 @@
   color: #e2e8f0;
   background: transparent;
 }
+:global([data-theme="dark"]) .filterSelect {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.10);
+  color: #e2e8f0;
+}
 :global([data-theme="dark"]) .counterCard {
   background: rgba(255,255,255,0.04);
   border-color: rgba(255,255,255,0.07);
@@ -952,10 +1034,15 @@
 :global([data-theme="dark"]) .bcCur        { color: #93c5fd; }
 :global([data-theme="dark"]) .backBtn      { color: #64748b; }
 :global([data-theme="dark"]) .backBtn:hover { background: rgba(37,99,235,0.08); color: #93c5fd; }
-:global([data-theme="dark"]) .refreshBtn {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.10);
+:global([data-theme="dark"]) .titleActions {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.08);
+}
+:global([data-theme="dark"]) .iconBtn {
   color: #94a3b8;
+}
+:global([data-theme="dark"]) .iconBtn .material-icons {
+  color: #60a5fa;
 }
 :global([data-theme="dark"]) .cellText { color: #cbd5e1; }
 :global([data-theme="dark"]) .cellMuted { color: #475569; }

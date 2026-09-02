@@ -60,7 +60,7 @@ const isDateColumn = (col) => {
 
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
-  const { title, endpoint, icon = 'dataset' } = cfg;
+  const { title, endpoint, icon = 'dataset', filters: filterDefs = [] } = cfg;
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +71,7 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pageTourRun, setPageTourRun] = useState(false);
+  const [filterValues, setFilterValues] = useState({});
 
   const TOUR_MODULES = [
     'supervisores',
@@ -165,13 +166,52 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     return null;
   };
 
-  const filtered = useMemo(() =>
-    search.trim()
-      ? data.filter(r => Object.values(r).some(v =>
-          String(v ?? '').toLowerCase().includes(search.toLowerCase())
-        ))
-      : data,
-  [data, search]);
+  // ── Opciones de filtros dinámicos (ej. supervisor, cliente) ──
+  const getRowValue = (row, key) =>
+    row[key] ?? row[key?.toUpperCase()] ?? row[key?.toLowerCase()] ?? null;
+
+  const filterOptions = useMemo(() => {
+    const map = {};
+
+    filterDefs.forEach(def => {
+      const values = new Set();
+
+      data.forEach(row => {
+        const val = getRowValue(row, def.key);
+        if (val !== null && val !== undefined && String(val).trim() !== '') {
+          values.add(String(val));
+        }
+      });
+
+      map[def.key] = Array.from(values).sort((a, b) => a.localeCompare(b));
+    });
+
+    return map;
+  }, [data, filterDefs]);
+
+  const setFilterValue = (key, value) => {
+    setFilterValues(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
+  const filtered = useMemo(() => {
+    let rows = data;
+
+    filterDefs.forEach(def => {
+      const selected = filterValues[def.key];
+      if (selected) {
+        rows = rows.filter(r => String(getRowValue(r, def.key) ?? '') === selected);
+      }
+    });
+
+    if (search.trim()) {
+      rows = rows.filter(r => Object.values(r).some(v =>
+        String(v ?? '').toLowerCase().includes(search.toLowerCase())
+      ));
+    }
+
+    return rows;
+  }, [data, search, filterDefs, filterValues]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -342,6 +382,24 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                 </button>
               )}
             </div>
+
+            {filterDefs.length > 0 && (
+              <div className={s.filtersWrap}>
+                {filterDefs.map(def => (
+                  <select
+                    key={def.key}
+                    className={s.filterSelect}
+                    value={filterValues[def.key] || ''}
+                    onChange={e => setFilterValue(def.key, e.target.value)}
+                  >
+                    <option value="">{def.allLabel}</option>
+                    {(filterOptions[def.key] || []).map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ))}
+              </div>
+            )}
 
             <div className={s.statsWrap}>
               <div className={s.counterCard}>
