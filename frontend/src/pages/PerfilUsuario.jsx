@@ -90,7 +90,7 @@ const setF = (k, v) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: usuario?.USERNAME ?? usuario?.username,
+          usuario: usuario?.USERNAME ?? usuario?.username,
           password: pass.actual,
         }),
       });
