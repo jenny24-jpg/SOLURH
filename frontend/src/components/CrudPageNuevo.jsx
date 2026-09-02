@@ -126,8 +126,9 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       } else {
         setError(json.mensaje ?? json.message ?? 'Error al cargar los datos');
       }
-    } catch {
-      setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.');
+    } catch (err) {
+      console.error('fetchData falló:', err);
+      setError(err.message || 'No se pudo conectar con el servidor. Verifica que el backend esté activo.');
     } finally {
       setLoading(false);
     }
@@ -201,19 +202,30 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     try {
       const res = await apiFetch(`${API}${endpoint}/${id}`, { method: 'DELETE' });
-      const json = await res.json();
 
-      if (json.ok === true || json.success === true) {
+      // La respuesta puede no ser JSON válido (ej. 404/502 devolviendo HTML).
+      // Intentamos parsear igual, pero sin dejar que un fallo de parseo
+      // se confunda con un error de conexión.
+      let json = null;
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        console.error('Respuesta no es JSON válido al eliminar:', res.status, parseErr);
+        alert(`Error del servidor (status ${res.status}). Revisa la consola/Network para más detalle.`);
+        return;
+      }
+
+      if (res.ok && (json.ok === true || json.success === true)) {
         setConfirmRow(null);
         fetchData();
-
-        window.dispatchEvent(new Event('plagas-actualizadas'));
-        window.dispatchEvent(new Event('arbol_actualizado'));
       } else {
-        alert(json.mensaje ?? json.message ?? 'Error al eliminar');
+        alert(json.mensaje ?? json.message ?? `Error al eliminar (status ${res.status})`);
       }
-    } catch {
-      alert('Error de conexión al eliminar');
+    } catch (err) {
+      // Este catch solo se dispara ante un fallo real de red/CORS
+      // (fetch() no pudo completarse), no ante errores del servidor.
+      console.error('handleDelete falló:', err);
+      alert(err.message || 'Error de conexión al eliminar. Revisa la consola para más detalle.');
     }
   };
 
