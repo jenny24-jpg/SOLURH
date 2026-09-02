@@ -77,7 +77,10 @@ const setF = (k, v) => {
     e.preventDefault();
     if (!pass.actual)    { setErrorPass('Ingresa tu contraseña actual'); return; }
     if (!pass.nueva)     { setErrorPass('Ingresa la nueva contraseña'); return; }
-    if (pass.nueva.length < 6) { setErrorPass('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (pass.nueva.length < 8) { setErrorPass('La contraseña debe tener al menos 8 caracteres'); return; }
+    if (!/[A-Z]/.test(pass.nueva)) { setErrorPass('La contraseña debe tener al menos una mayúscula'); return; }
+    if (!/[a-z]/.test(pass.nueva)) { setErrorPass('La contraseña debe tener al menos una minúscula'); return; }
+    if (!/[0-9]/.test(pass.nueva)) { setErrorPass('La contraseña debe tener al menos un número'); return; }
     if (pass.nueva !== pass.confirmar) { setErrorPass('Las contraseñas no coinciden'); return; }
 
     const id = usuario?.ID_USUARIO ?? usuario?.id_usuario;
@@ -105,7 +108,7 @@ const setF = (k, v) => {
       const res  = await apiFetch(`${API}/usuarios/${id}/password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password_nueva: pass.nueva }),
+        body: JSON.stringify({ password_actual: pass.actual, password_nueva: pass.nueva }),
       });
       const data = await res.json();
 
@@ -279,7 +282,7 @@ const setF = (k, v) => {
                   <span className="material-icons">lock_reset</span>
                   <input
                     type={verNueva ? 'text' : 'password'}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres, con mayúscula, minúscula y número"
                     value={pass.nueva}
                     onChange={e => setP('nueva', e.target.value)}
                   />
