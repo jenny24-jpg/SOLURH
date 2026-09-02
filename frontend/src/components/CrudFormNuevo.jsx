@@ -1191,7 +1191,10 @@ isSector
         <div className={s.body}>
           <form id="crudForm" onSubmit={handleSubmit} noValidate className={s.formGrid}>
             {fields
-              .filter(field => !(isEdit && field.rangeRole === 'end'))
+              .filter(field =>
+  !(isEdit && field.rangeRole === 'end') &&
+  !(!isEdit && field.editOnly)
+)
               .map(field => (
               <div
                 key={field.name}

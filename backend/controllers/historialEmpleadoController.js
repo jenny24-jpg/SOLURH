@@ -24,7 +24,8 @@ const SELECT_BAJAS = `
     e.nombres,
     e.apellidos,
     e.fecha_ingreso,
-    e.fecha_baja AS fecha_de_baja,
+e.estado,
+e.fecha_baja AS fecha_de_baja,
     e.motivo_baja,
     e.supervisor_id,
     c.nombre AS cliente,
@@ -168,7 +169,7 @@ const insertar = async (req, res) => {
 // ── Editar una baja existente ──
 const actualizar = async (req, res) => {
   const { id_historial } = req.params; // aquí llega el id del empleado
-  const { fecha_baja, motivo_baja } = req.body;
+  const { fecha_baja, motivo_baja, estado } = req.body;
 
   if (!fecha_baja) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha de baja es requerida.' });
@@ -180,10 +181,36 @@ const actualizar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    await conn.query(
-      `UPDATE empleados SET fecha_baja = $1, motivo_baja = $2 WHERE id = $3`,
-      [fecha_baja, motivo_baja.trim(), Number(id_historial)]
-    );
+    if (estado === 'ACTIVO') {
+
+  await conn.query(
+    `UPDATE empleados
+     SET estado = 'ACTIVO',
+         fecha_baja = NULL,
+         motivo_baja = NULL
+     WHERE id = $1`,
+    [Number(id_historial)]
+  );
+
+  return res.status(200).json({
+    ok: true,
+    mensaje: 'Empleado reactivado correctamente.'
+  });
+}
+
+await conn.query(
+  `UPDATE empleados
+   SET fecha_baja = $1,
+       motivo_baja = $2,
+       estado = 'INACTIVO'
+   WHERE id = $3`,
+  [fecha_baja, motivo_baja.trim(), Number(id_historial)]
+);
+
+res.status(200).json({
+  ok: true,
+  mensaje: 'Baja actualizada correctamente.'
+});
 
     res.status(200).json({ ok: true, mensaje: 'Baja actualizada correctamente.' });
   } catch (err) {
