@@ -569,3 +569,27 @@
   border-color: rgba(255,255,255,0.06);
 }
 :global([data-theme="dark"]) .helperText { color: #64748b; }
+.filtersWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  min-height: 50px;
+  padding: 0 14px;
+  background: #fff;
+  border: 1px solid var(--pergamino-verde);
+  border-radius: 14px;
+  color: var(--verde-profundo);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  border-color: rgba(27,42,77,.45);
+  box-shadow: 0 0 0 4px rgba(27,42,77,.07);
+}

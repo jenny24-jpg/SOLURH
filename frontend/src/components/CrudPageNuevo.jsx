@@ -89,6 +89,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [filtroSupervisor, setFiltroSupervisor] = useState('');
+const [filtroArea, setFiltroArea] = useState('');
   const [modal, setModal] = useState(null);
   const [confirmRow, setConfirmRow] = useState(null);
   const [page, setPage] = useState(1);
@@ -161,8 +163,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   }, [fetchData]);
 
   useEffect(() => {
-    setPage(1);
-  }, [search]);
+  setPage(1);
+}, [search, filtroSupervisor, filtroArea]);
 
   const cols = data.length > 0
     ? Object.keys(data[0]).filter(
@@ -215,14 +217,60 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     return null;
   };
+  // ── Filtros disponibles para Asistencias ─────────────
 
-  const filtered = useMemo(() =>
-    search.trim()
-      ? data.filter(r => Object.values(r).some(v =>
-          String(v ?? '').toLowerCase().includes(search.toLowerCase())
-        ))
-      : data,
-  [data, search]);
+const supervisoresDisponibles = useMemo(() => {
+  return [...new Set(
+    data
+      .map(r => r.supervisor)
+      .filter(Boolean)
+  )].sort();
+}, [data]);
+
+
+const areasDisponibles = useMemo(() => {
+  return [...new Set(
+    data
+      .filter(r =>
+        !filtroSupervisor ||
+        String(r.supervisor) === String(filtroSupervisor)
+      )
+      .map(r => r.area)
+      .filter(Boolean)
+  )].sort();
+}, [data, filtroSupervisor]);
+
+  const filtered = useMemo(() => {
+  let resultados = [...data];
+
+  // 🔎 Búsqueda general
+  if (search.trim()) {
+    const texto = search.toLowerCase();
+
+    resultados = resultados.filter(r =>
+      Object.values(r).some(v =>
+        String(v ?? '').toLowerCase().includes(texto)
+      )
+    );
+  }
+
+  // 👤 Filtrar por supervisor
+  if (moduleKey === 'asistencias' && filtroSupervisor) {
+    resultados = resultados.filter(r =>
+      String(r.supervisor ?? '') === String(filtroSupervisor)
+    );
+  }
+
+  // 🏢 Filtrar por área
+  if (moduleKey === 'asistencias' && filtroArea) {
+    resultados = resultados.filter(r =>
+      String(r.area ?? '') === String(filtroArea)
+    );
+  }
+
+  return resultados;
+
+}, [data, search, moduleKey, filtroSupervisor, filtroArea]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -422,6 +470,46 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                 </button>
               )}
             </div>
+
+            {moduleKey === 'asistencias' && (
+  <div className={s.filtersWrap}>
+
+    {/* 👤 FILTRO SUPERVISOR */}
+    <select
+      className={s.filterSelect}
+      value={filtroSupervisor}
+      onChange={(e) => {
+        setFiltroSupervisor(e.target.value);
+        setFiltroArea('');
+      }}
+    >
+      <option value="">Todos los supervisores</option>
+
+      {supervisoresDisponibles.map((supervisor) => (
+        <option key={supervisor} value={supervisor}>
+          {supervisor}
+        </option>
+      ))}
+    </select>
+
+
+    {/* 🏢 FILTRO ÁREA */}
+    <select
+      className={s.filterSelect}
+      value={filtroArea}
+      onChange={(e) => setFiltroArea(e.target.value)}
+    >
+      <option value="">Todas las áreas</option>
+
+      {areasDisponibles.map((area) => (
+        <option key={area} value={area}>
+          {area}
+        </option>
+      ))}
+    </select>
+
+  </div>
+)}
 
             <div className={s.statsWrap}>
               <div className={s.counterCard}>
