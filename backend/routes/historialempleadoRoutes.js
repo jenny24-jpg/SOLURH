@@ -9,7 +9,6 @@ router.get('/', verificarToken, historialEmpleadoController.listar);
 router.get('/empleado/:empleado_id', verificarToken, historialEmpleadoController.listarPorEmpleado);
 router.get('/:id_historial', verificarToken, historialEmpleadoController.obtenerPorId);
 router.post('/', verificarToken, historialEmpleadoController.insertar);
-router.delete('/:id_historial', verificarToken, historialEmpleadoController.eliminar);
 router.put('/:id_historial', verificarToken, historialEmpleadoController.actualizar);
 router.delete('/:id_historial', verificarToken, historialEmpleadoController.eliminar);
 

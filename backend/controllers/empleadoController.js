@@ -11,7 +11,7 @@ function usuarioAuditoria(req) {
 // Trae también el nombre del cliente y del supervisor, para no tener
 // que hacer consultas extra desde el frontend.
 const SELECT_BASE = `
-  SELECT e.*, c.nombre AS nombre_cliente, s.nombre AS nombre_supervisor
+  SELECT e.*, c.nombre AS cliente, s.nombre AS supervisor
   FROM empleados e
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
