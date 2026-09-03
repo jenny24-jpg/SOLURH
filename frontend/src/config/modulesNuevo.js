@@ -75,8 +75,8 @@
   ];
 
   export const ESTADO_ACTIVO_OPTIONS = [
-    { value: 'activo', label: 'Activo' },
-    { value: 'inactivo', label: 'Inactivo' },
+    { value: 'ACTIVO', label: 'Activo' },
+    { value: 'INACTIVO', label: 'Inactivo' },
   ];
 
   export const ESTADO_ASISTENCIA_OPTIONS = [
@@ -219,10 +219,6 @@
     title: 'Asistencias',
     endpoint: '/asistencia',
     icon: 'event_available',
-    filters: [
-      { key: 'supervisor', allLabel: 'Todos los supervisores' },
-      { key: 'cliente', allLabel: 'Todos los clientes' },
-    ],
     fields: [
       {
         name: 'empleado_id',
@@ -281,8 +277,20 @@
           optionLabel: 'nombres',
         },
         { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
-        { name: 'horas', label: 'Horas', type: 'number', required: true, min: 0.5 },
-        { name: 'tipo_hora_extra', label: 'Tipo de hora extra', type: 'select', options: TIPO_HORA_EXTRA_OPTIONS },
+        {
+          name: 'horas_diurnas',
+          label: 'Horas diurnas (si aplica)',
+          type: 'number',
+          min: 0,
+          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Diurna' },
+        },
+        {
+          name: 'horas_nocturnas',
+          label: 'Horas nocturnas (si aplica)',
+          type: 'number',
+          min: 0,
+          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Nocturna' },
+        },
         { name: 'motivo', label: 'Motivo', type: 'textarea', required: true, minLength: 5, maxLength: 300 },
         { name: 'aprobado', label: 'Aprobado', type: 'select', options: APROBADO_OPTIONS },
       ],

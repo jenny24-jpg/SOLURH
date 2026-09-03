@@ -22,6 +22,15 @@ export default function CrudFormNuevo({ config, editItem, editId, onClose, onSav
         return;
       }
 
+      // Campos "divididos" (ej. Horas diurnas / Horas nocturnas): en edición,
+      // solo se rellena el que coincide con el tipo real guardado en el registro.
+      if (field.splitGroup) {
+        const { targetField, typeField, typeValue } = field.splitGroup;
+        const matches = editItem?.[typeField] === typeValue;
+        f[field.name] = matches ? (editItem?.[targetField] ?? '') : '';
+        return;
+      }
+
       // Campos de rango de fecha (fecha_inicio/fecha_fin): en edición ambos
       // se prellenan con la fecha real del registro (rangeTarget), ya que
       // ese registro representa un único día.
@@ -1046,6 +1055,80 @@ isSector
       return;
     }
 
+    // ── Modo "split": un mismo registro se divide en varios envíos
+    // (ej. Horas diurnas + Horas nocturnas para el mismo empleado/fecha) ──
+    const splitFields = !isEdit ? fields.filter(f => f.splitGroup) : [];
+    const isSplitMode = splitFields.length > 0;
+
+    if (isSplitMode) {
+      const otherFields = fields.filter(f => !f.splitGroup);
+      const baseBody = {};
+      otherFields.forEach(field => {
+        if (field.omitOnSubmit) return;
+        baseBody[field.name] = normalizeValueForSubmit(field);
+      });
+
+      const submissions = splitFields
+        .map(field => {
+          const raw = form[field.name];
+          const num = raw === '' || raw === null || raw === undefined ? 0 : Number(raw);
+          if (!num || num <= 0) return null;
+          return {
+            ...baseBody,
+            [field.splitGroup.targetField]: num,
+            [field.splitGroup.typeField]: field.splitGroup.typeValue,
+          };
+        })
+        .filter(Boolean);
+
+      if (submissions.length === 0) {
+        setSaving(false);
+        setError('Ingresa al menos una cantidad de horas (diurnas o nocturnas).');
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+      let lastErrorMsg = '';
+
+      for (const body of submissions) {
+        try {
+          const res = await apiFetch(`${API}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+          const json = await res.json();
+
+          if (json.ok === true || json.success === true) {
+            successCount += 1;
+          } else {
+            failCount += 1;
+            lastErrorMsg = json.mensaje ?? json.message ?? 'Error al guardar';
+          }
+        } catch {
+          failCount += 1;
+          lastErrorMsg = 'Error de conexión';
+        }
+      }
+
+      setSaving(false);
+
+      if (failCount === 0) {
+        onSaved();
+      } else if (successCount > 0) {
+        setError(
+          `Se crearon ${successCount} registro(s) correctamente, pero ${failCount} fallaron. ${lastErrorMsg}`
+        );
+        onSaved();
+      } else {
+        setError(`No se pudo crear ningún registro. ${lastErrorMsg}`);
+      }
+
+      return;
+    }
+
     // ── Modo normal: un solo registro ─────────────────────────────
     const body = {};
     fields.forEach(field => {
@@ -1065,6 +1148,16 @@ isSector
 
       if (field.rangeTarget) {
         body[field.rangeTarget] = normalizeValueForSubmit(field);
+        return;
+      }
+
+      if (field.splitGroup) {
+        const raw = form[field.name];
+        const num = raw === '' || raw === null || raw === undefined ? null : Number(raw);
+        if (num && num > 0) {
+          body[field.splitGroup.targetField] = num;
+          body[field.splitGroup.typeField] = field.splitGroup.typeValue;
+        }
         return;
       }
 
@@ -1191,10 +1284,7 @@ isSector
         <div className={s.body}>
           <form id="crudForm" onSubmit={handleSubmit} noValidate className={s.formGrid}>
             {fields
-              .filter(field =>
-  !(isEdit && field.rangeRole === 'end') &&
-  !(!isEdit && field.editOnly)
-)
+              .filter(field => !(isEdit && field.rangeRole === 'end'))
               .map(field => (
               <div
                 key={field.name}
