@@ -60,18 +60,19 @@ const isDateColumn = (col) => {
 
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
-  const { title, endpoint, icon = 'dataset', filters: filterDefs = [] } = cfg;
+  const { title, endpoint, icon = 'dataset' } = cfg;
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [filterCliente, setFilterCliente] = useState('');
+  const [filterSupervisor, setFilterSupervisor] = useState('');
   const [modal, setModal] = useState(null);
   const [confirmRow, setConfirmRow] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pageTourRun, setPageTourRun] = useState(false);
-  const [filterValues, setFilterValues] = useState({});
 
   const TOUR_MODULES = [
     'supervisores',
@@ -166,43 +167,25 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     return null;
   };
 
-  // ── Opciones de filtros dinámicos (ej. supervisor, cliente) ──
-  const getRowValue = (row, key) =>
-    row[key] ?? row[key?.toUpperCase()] ?? row[key?.toLowerCase()] ?? null;
+  // Columnas 'cliente' y 'supervisor' (nombres ya resueltos, no IDs) que
+  // algunos módulos como Asistencias traen listas para filtrar rápido.
+  const hasClienteCol = data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'cliente');
+  const hasSupervisorCol = data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'supervisor');
 
-  const filterOptions = useMemo(() => {
-    const map = {};
+  const clienteOptions = useMemo(() => {
+    if (!hasClienteCol) return [];
+    const set = new Set(data.map(r => r.cliente).filter(Boolean));
+    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  }, [data, hasClienteCol]);
 
-    filterDefs.forEach(def => {
-      const values = new Set();
-
-      data.forEach(row => {
-        const val = getRowValue(row, def.key);
-        if (val !== null && val !== undefined && String(val).trim() !== '') {
-          values.add(String(val));
-        }
-      });
-
-      map[def.key] = Array.from(values).sort((a, b) => a.localeCompare(b));
-    });
-
-    return map;
-  }, [data, filterDefs]);
-
-  const setFilterValue = (key, value) => {
-    setFilterValues(prev => ({ ...prev, [key]: value }));
-    setPage(1);
-  };
+  const supervisorOptions = useMemo(() => {
+    if (!hasSupervisorCol) return [];
+    const set = new Set(data.map(r => r.supervisor).filter(Boolean));
+    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  }, [data, hasSupervisorCol]);
 
   const filtered = useMemo(() => {
     let rows = data;
-
-    filterDefs.forEach(def => {
-      const selected = filterValues[def.key];
-      if (selected) {
-        rows = rows.filter(r => String(getRowValue(r, def.key) ?? '') === selected);
-      }
-    });
 
     if (search.trim()) {
       rows = rows.filter(r => Object.values(r).some(v =>
@@ -210,8 +193,16 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       ));
     }
 
+    if (filterCliente) {
+      rows = rows.filter(r => r.cliente === filterCliente);
+    }
+
+    if (filterSupervisor) {
+      rows = rows.filter(r => r.supervisor === filterSupervisor);
+    }
+
     return rows;
-  }, [data, search, filterDefs, filterValues]);
+  }, [data, search, filterCliente, filterSupervisor]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -338,31 +329,32 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
               </div>
             </div>
 
-            <div className={s.titleActions}>
-              <button
-                className={s.iconBtn}
-                onClick={() => {
-                  setPageTourRun(false);
-                  setTimeout(() => setPageTourRun(true), 100);
-                }}
-                title="Mini tutorial"
-                type="button"
-              >
-                <span className="material-icons">help_outline</span>
-                <span className={s.btnLabel}>Mini tutorial</span>
-              </button>
+            <button
+              className={s.refreshBtn}
+              onClick={() => {
+                setPageTourRun(false);
+                setTimeout(() => setPageTourRun(true), 100);
+              }}
+              type="button"
+            >
+              <span className="material-icons">help_outline</span>
+              <span className={s.btnLabel}>Mini tutorial</span>
+            </button>
 
-              <button className={s.iconBtn} onClick={fetchData} title="Actualizar" type="button">
-                <span className="material-icons">refresh</span>
+            <div className={s.titleActions}>
+              <button className={s.refreshBtn} onClick={fetchData} title="Actualizar" type="button">
+                <span className={s.iconCircle}>
+                  <span className="material-icons">refresh</span>
+                </span>
                 <span className={s.btnLabel}>Actualizar</span>
               </button>
 
               <ExportarBtn data={filtered} cols={cols} title={title} />
 
-              <span className={s.actionsDivider} />
-
               <button className={`${s.btnAdd} tour-agregar`} onClick={() => setModal('new')} type="button">
-                <span className="material-icons">add</span>
+                <span className={s.iconCircle}>
+                  <span className="material-icons">add</span>
+                </span>
                 <span className={s.btnLabel}>Agregar registro</span>
               </button>
             </div>
@@ -383,22 +375,30 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
               )}
             </div>
 
-            {filterDefs.length > 0 && (
-              <div className={s.filtersWrap}>
-                {filterDefs.map(def => (
-                  <select
-                    key={def.key}
-                    className={s.filterSelect}
-                    value={filterValues[def.key] || ''}
-                    onChange={e => setFilterValue(def.key, e.target.value)}
-                  >
-                    <option value="">{def.allLabel}</option>
-                    {(filterOptions[def.key] || []).map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+            {hasClienteCol && (
+              <select
+                className={s.filterSelect}
+                value={filterCliente}
+                onChange={e => setFilterCliente(e.target.value)}
+              >
+                <option value="">Todos los clientes</option>
+                {clienteOptions.map(c => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
-              </div>
+              </select>
+            )}
+
+            {hasSupervisorCol && (
+              <select
+                className={s.filterSelect}
+                value={filterSupervisor}
+                onChange={e => setFilterSupervisor(e.target.value)}
+              >
+                <option value="">Todos los supervisores</option>
+                {supervisorOptions.map(sup => (
+                  <option key={sup} value={sup}>{sup}</option>
+                ))}
+              </select>
             )}
 
             <div className={s.statsWrap}>
