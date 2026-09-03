@@ -716,8 +716,18 @@ isSector
   }, [fields, form]);
 
   const getDependentOptions = field => {
-    return remoteOptions[field.name] ?? [];
+    const opts = remoteOptions[field.name] ?? [];
+
+    if (field.sortLabel) {
+      return [...opts].sort((a, b) =>
+        String(a.label ?? '').localeCompare(String(b.label ?? ''), 'es', { sensitivity: 'base' })
+      );
+    }
+
+    return opts;
   };
+
+  const [multiSelectSearch, setMultiSelectSearch] = useState({});
 
   const isArbolesEndpoint = endpoint === '/arbol';
 
@@ -1381,23 +1391,62 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                     ))}
                   </select>
                 ) : field.type === 'remote-multiselect' ? (
-                  <div
-                    className={`${s.input} ${fieldErrors[field.name] ? s.inputError : ''}`}
-                    style={{
-                      maxHeight: 160,
-                      overflowY: 'auto',
-                      padding: '8px 10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                    }}
-                  >
-                    {loadingOptions[field.name] ? (
+                  <div>
+                    {field.searchable && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          border: '1px solid #d1d5db',
+                          borderRadius: 8,
+                          padding: '6px 10px',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <span aria-hidden="true">🔍</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre..."
+                          value={multiSelectSearch[field.name] ?? ''}
+                          onChange={e =>
+                            setMultiSelectSearch(prev => ({
+                              ...prev,
+                              [field.name]: e.target.value,
+                            }))
+                          }
+                          style={{
+                            border: 'none',
+                            outline: 'none',
+                            flex: 1,
+                            fontSize: 14,
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div
+                      className={`${s.input} ${fieldErrors[field.name] ? s.inputError : ''}`}
+                      style={{
+                        maxHeight: 160,
+                        overflowY: 'auto',
+                        padding: '8px 10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                      }}
+                    >
+                      {loadingOptions[field.name] ? (
                       <span className={s.hint}>Cargando opciones...</span>
                     ) : getDependentOptions(field).length === 0 ? (
                       <span className={s.hint}>No hay opciones disponibles</span>
                     ) : (
-                      getDependentOptions(field).map(option => {
+                      getDependentOptions(field)
+                        .filter(option => {
+                          const query = (multiSelectSearch[field.name] ?? '').trim().toLowerCase();
+                          if (!query) return true;
+                          return String(option.label ?? '').toLowerCase().includes(query);
+                        })
+                        .map(option => {
                         const selected = Array.isArray(form[field.name])
                           ? form[field.name]
                           : [];
@@ -1428,6 +1477,7 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                         );
                       })
                     )}
+                    </div>
                   </div>
                 ) : field.type === 'remote-select' ? (
                   <select
