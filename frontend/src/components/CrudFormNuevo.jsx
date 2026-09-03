@@ -955,6 +955,26 @@ isSector
     }
   }
 
+  if (Array.isArray(config.requireAtLeastOne) && config.requireAtLeastOne.length > 0) {
+    const group = config.requireAtLeastOne;
+
+    const anyFilled = group.some(name => {
+      const v = form[name];
+      if (v === '' || v === null || v === undefined) return false;
+      const num = Number(v);
+      return !Number.isNaN(num) ? num > 0 : String(v).trim() !== '';
+    });
+
+    if (!anyFilled) {
+      const labels = group.map(name => fieldMap[name]?.label ?? name).join(' o ');
+      const msg = `Ingresa al menos uno de estos campos: ${labels}`;
+
+      group.forEach(name => {
+        errors[name] = msg;
+      });
+    }
+  }
+
   return errors;
 };
 

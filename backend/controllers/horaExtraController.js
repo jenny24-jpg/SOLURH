@@ -69,8 +69,28 @@ const listarPorEmpleado = async (req, res) => {
   }
 };
 
+// Normaliza horas_diurnas/horas_nocturnas recibidos del formulario nuevo
+// (que ya no divide el registro en 2, sino que manda ambos valores juntos).
+function leerHorasSplit(body) {
+  const diurnas = body.horas_diurnas !== undefined && body.horas_diurnas !== null && body.horas_diurnas !== ''
+    ? Number(body.horas_diurnas)
+    : 0;
+  const nocturnas = body.horas_nocturnas !== undefined && body.horas_nocturnas !== null && body.horas_nocturnas !== ''
+    ? Number(body.horas_nocturnas)
+    : 0;
+  const total = diurnas + nocturnas;
+
+  // tipo_hora_extra se conserva solo como campo legado (compatibilidad con
+  // reportes/dashboard antiguos); no se usa para decidir qué columna llenar.
+  const tipoLegacy = body.tipo_hora_extra
+    || (nocturnas > 0 && diurnas === 0 ? 'Nocturna' : 'Diurna');
+
+  return { diurnas, nocturnas, total, tipoLegacy };
+}
+
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, horas, motivo, tipo_hora_extra } = req.body;
+  const { empleado_id, fecha, motivo } = req.body;
+  const { diurnas, nocturnas, total, tipoLegacy } = leerHorasSplit(req.body);
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -78,24 +98,24 @@ const insertar = async (req, res) => {
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
   }
-  if (!horas || Number(horas) <= 0) {
-    return res.status(400).json({ ok: false, mensaje: 'La cantidad de horas debe ser mayor a 0.' });
+  if (total <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'Ingresa al menos horas diurnas o nocturnas.' });
   }
 
   let conn;
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra, created_at)
-       VALUES ($1,$2,$3,$4,false,$5, NOW()) RETURNING id`,
-      [Number(empleado_id), fecha, Number(horas), motivo || null, tipo_hora_extra || 'Diurna']
+      `INSERT INTO horas_extras (empleado_id, fecha, horas, horas_diurnas, horas_nocturnas, motivo, aprobado, tipo_hora_extra, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,false,$7, NOW()) RETURNING id`,
+      [Number(empleado_id), fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy]
     );
 
     await registrarAuditoria(conn, {
       tabla: 'HORAS_EXTRAS',
       operacion: 'INSERT',
       idRegistro: result.rows[0].id,
-      descripcion: `Horas extra registradas para empleado ${empleado_id} (${horas}h)`,
+      descripcion: `Horas extra registradas para empleado ${empleado_id} (D:${diurnas}h / N:${nocturnas}h)`,
       ...usuarioAuditoria(req),
     });
 
@@ -139,21 +159,22 @@ const cambiarAprobacion = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_hora_extra } = req.params;
-  const { fecha, horas, motivo, tipo_hora_extra } = req.body;
+  const { fecha, motivo } = req.body;
+  const { diurnas, nocturnas, total, tipoLegacy } = leerHorasSplit(req.body);
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
   }
-  if (!horas || Number(horas) <= 0) {
-    return res.status(400).json({ ok: false, mensaje: 'La cantidad de horas debe ser mayor a 0.' });
+  if (total <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'Ingresa al menos horas diurnas o nocturnas.' });
   }
 
   let conn;
   try {
     conn = await getConnection();
     await conn.query(
-      `UPDATE horas_extras SET fecha=$1, horas=$2, motivo=$3, tipo_hora_extra=$4 WHERE id=$5`,
-      [fecha, Number(horas), motivo || null, tipo_hora_extra || 'Diurna', Number(id_hora_extra)]
+      `UPDATE horas_extras SET fecha=$1, horas=$2, horas_diurnas=$3, horas_nocturnas=$4, motivo=$5, tipo_hora_extra=$6 WHERE id=$7`,
+      [fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy, Number(id_hora_extra)]
     );
 
     await registrarAuditoria(conn, {

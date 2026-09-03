@@ -60,19 +60,18 @@ const isDateColumn = (col) => {
 
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
-  const { title, endpoint, icon = 'dataset' } = cfg;
+  const { title, endpoint, icon = 'dataset', filters: filterDefs = [] } = cfg;
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filterCliente, setFilterCliente] = useState('');
-  const [filterSupervisor, setFilterSupervisor] = useState('');
   const [modal, setModal] = useState(null);
   const [confirmRow, setConfirmRow] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pageTourRun, setPageTourRun] = useState(false);
+  const [filterValues, setFilterValues] = useState({});
 
   const TOUR_MODULES = [
     'supervisores',
@@ -128,9 +127,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       } else {
         setError(json.mensaje ?? json.message ?? 'Error al cargar los datos');
       }
-    } catch (err) {
-      console.error('fetchData falló:', err);
-      setError(err.message || 'No se pudo conectar con el servidor. Verifica que el backend esté activo.');
+    } catch {
+      setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.');
     } finally {
       setLoading(false);
     }
@@ -144,9 +142,12 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     setPage(1);
   }, [search]);
 
+  const moduleHiddenCols = useMemo(() => new Set(cfg.hiddenCols || []), [cfg.hiddenCols]);
+
   const cols = data.length > 0
     ? Object.keys(data[0]).filter(
         k => !HIDDEN_COLS.has(k) && !HIDDEN_COLS.has(k.toLowerCase())
+          && !moduleHiddenCols.has(k) && !moduleHiddenCols.has(k.toLowerCase())
       )
     : [];
 
@@ -168,25 +169,43 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     return null;
   };
 
-  // Columnas 'cliente' y 'supervisor' (nombres ya resueltos, no IDs) que
-  // algunos módulos como Asistencias y Empleados traen listas para filtrar rápido.
-  const hasClienteCol = data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'cliente');
-  const hasSupervisorCol = data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'supervisor');
+  // ── Opciones de filtros dinámicos (ej. supervisor, cliente) ──
+  const getRowValue = (row, key) =>
+    row[key] ?? row[key?.toUpperCase()] ?? row[key?.toLowerCase()] ?? null;
 
-  const clienteOptions = useMemo(() => {
-    if (!hasClienteCol) return [];
-    const set = new Set(data.map(r => r.cliente).filter(Boolean));
-    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'es'));
-  }, [data, hasClienteCol]);
+  const filterOptions = useMemo(() => {
+    const map = {};
 
-  const supervisorOptions = useMemo(() => {
-    if (!hasSupervisorCol) return [];
-    const set = new Set(data.map(r => r.supervisor).filter(Boolean));
-    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'es'));
-  }, [data, hasSupervisorCol]);
+    filterDefs.forEach(def => {
+      const values = new Set();
+
+      data.forEach(row => {
+        const val = getRowValue(row, def.key);
+        if (val !== null && val !== undefined && String(val).trim() !== '') {
+          values.add(String(val));
+        }
+      });
+
+      map[def.key] = Array.from(values).sort((a, b) => a.localeCompare(b));
+    });
+
+    return map;
+  }, [data, filterDefs]);
+
+  const setFilterValue = (key, value) => {
+    setFilterValues(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
 
   const filtered = useMemo(() => {
     let rows = data;
+
+    filterDefs.forEach(def => {
+      const selected = filterValues[def.key];
+      if (selected) {
+        rows = rows.filter(r => String(getRowValue(r, def.key) ?? '') === selected);
+      }
+    });
 
     if (search.trim()) {
       rows = rows.filter(r => Object.values(r).some(v =>
@@ -194,16 +213,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       ));
     }
 
-    if (filterCliente) {
-      rows = rows.filter(r => r.cliente === filterCliente);
-    }
-
-    if (filterSupervisor) {
-      rows = rows.filter(r => r.supervisor === filterSupervisor);
-    }
-
     return rows;
-  }, [data, search, filterCliente, filterSupervisor]);
+  }, [data, search, filterDefs, filterValues]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -233,30 +244,19 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     try {
       const res = await apiFetch(`${API}${endpoint}/${id}`, { method: 'DELETE' });
+      const json = await res.json();
 
-      // La respuesta puede no ser JSON válido (ej. 404/502 devolviendo HTML).
-      // Intentamos parsear igual, pero sin dejar que un fallo de parseo
-      // se confunda con un error de conexión.
-      let json = null;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error('Respuesta no es JSON válido al eliminar:', res.status, parseErr);
-        alert(`Error del servidor (status ${res.status}). Revisa la consola/Network para más detalle.`);
-        return;
-      }
-
-      if (res.ok && (json.ok === true || json.success === true)) {
+      if (json.ok === true || json.success === true) {
         setConfirmRow(null);
         fetchData();
+
+        window.dispatchEvent(new Event('plagas-actualizadas'));
+        window.dispatchEvent(new Event('arbol_actualizado'));
       } else {
-        alert(json.mensaje ?? json.message ?? `Error al eliminar (status ${res.status})`);
+        alert(json.mensaje ?? json.message ?? 'Error al eliminar');
       }
-    } catch (err) {
-      // Este catch solo se dispara ante un fallo real de red/CORS
-      // (fetch() no pudo completarse), no ante errores del servidor.
-      console.error('handleDelete falló:', err);
-      alert(err.message || 'Error de conexión al eliminar. Revisa la consola para más detalle.');
+    } catch {
+      alert('Error de conexión al eliminar');
     }
   };
 
@@ -341,32 +341,31 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
               </div>
             </div>
 
-            <button
-              className={s.refreshBtn}
-              onClick={() => {
-                setPageTourRun(false);
-                setTimeout(() => setPageTourRun(true), 100);
-              }}
-              type="button"
-            >
-              <span className="material-icons">help_outline</span>
-              <span className={s.btnLabel}>Mini tutorial</span>
-            </button>
-
             <div className={s.titleActions}>
-              <button className={s.refreshBtn} onClick={fetchData} title="Actualizar" type="button">
-                <span className={s.iconCircle}>
-                  <span className="material-icons">refresh</span>
-                </span>
+              <button
+                className={s.iconBtn}
+                onClick={() => {
+                  setPageTourRun(false);
+                  setTimeout(() => setPageTourRun(true), 100);
+                }}
+                title="Mini tutorial"
+                type="button"
+              >
+                <span className="material-icons">help_outline</span>
+                <span className={s.btnLabel}>Mini tutorial</span>
+              </button>
+
+              <button className={s.iconBtn} onClick={fetchData} title="Actualizar" type="button">
+                <span className="material-icons">refresh</span>
                 <span className={s.btnLabel}>Actualizar</span>
               </button>
 
               <ExportarBtn data={filtered} cols={cols} title={title} />
 
+              <span className={s.actionsDivider} />
+
               <button className={`${s.btnAdd} tour-agregar`} onClick={() => setModal('new')} type="button">
-                <span className={s.iconCircle}>
-                  <span className="material-icons">add</span>
-                </span>
+                <span className="material-icons">add</span>
                 <span className={s.btnLabel}>Agregar registro</span>
               </button>
             </div>
@@ -387,30 +386,22 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
               )}
             </div>
 
-            {hasClienteCol && (
-              <select
-                className={s.filterSelect}
-                value={filterCliente}
-                onChange={e => setFilterCliente(e.target.value)}
-              >
-                <option value="">Todos los clientes</option>
-                {clienteOptions.map(c => (
-                  <option key={c} value={c}>{c}</option>
+            {filterDefs.length > 0 && (
+              <div className={s.filtersWrap}>
+                {filterDefs.map(def => (
+                  <select
+                    key={def.key}
+                    className={s.filterSelect}
+                    value={filterValues[def.key] || ''}
+                    onChange={e => setFilterValue(def.key, e.target.value)}
+                  >
+                    <option value="">{def.allLabel}</option>
+                    {(filterOptions[def.key] || []).map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 ))}
-              </select>
-            )}
-
-            {hasSupervisorCol && (
-              <select
-                className={s.filterSelect}
-                value={filterSupervisor}
-                onChange={e => setFilterSupervisor(e.target.value)}
-              >
-                <option value="">Todos los supervisores</option>
-                {supervisorOptions.map(sup => (
-                  <option key={sup} value={sup}>{sup}</option>
-                ))}
-              </select>
+              </div>
             )}
 
             <div className={s.statsWrap}>

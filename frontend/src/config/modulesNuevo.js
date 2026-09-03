@@ -27,6 +27,8 @@
     hora_entrada: 'Hora entrada',
     hora_salida: 'Hora salida',
     horas: 'Horas',
+    horas_diurnas: 'Horas D',
+    horas_nocturnas: 'Horas N',
     motivo: 'Motivo',
     aprobado: 'Aprobado',
     tipo_documento: 'Tipo de documento',
@@ -219,6 +221,10 @@
     title: 'Asistencias',
     endpoint: '/asistencia',
     icon: 'event_available',
+    filters: [
+      { key: 'supervisor', allLabel: 'Todos los supervisores' },
+      { key: 'cliente', allLabel: 'Todos los clientes' },
+    ],
     fields: [
       {
         name: 'empleado_id',
@@ -269,6 +275,8 @@
       title: 'Horas Extras',
       endpoint: '/horas-extra',
       icon: 'more_time',
+      requireAtLeastOne: ['horas_diurnas', 'horas_nocturnas'],
+      hiddenCols: ['horas', 'tipo_hora_extra'],
       fields: [
         {
           name: 'empleado_id',
@@ -288,14 +296,12 @@
           label: 'Horas diurnas (si aplica)',
           type: 'number',
           min: 0,
-          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Diurna' },
         },
         {
           name: 'horas_nocturnas',
           label: 'Horas nocturnas (si aplica)',
           type: 'number',
           min: 0,
-          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Nocturna' },
         },
         { name: 'motivo', label: 'Motivo', type: 'textarea', required: true, minLength: 5, maxLength: 300 },
         { name: 'aprobado', label: 'Aprobado', type: 'select', options: APROBADO_OPTIONS },

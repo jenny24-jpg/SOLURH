@@ -32,6 +32,8 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, ti
     : 0;
 
   const tipo = tipo_hora_extra || 'Diurna';
+  const horasDiurnas = tipo === 'Nocturna' ? 0 : horas;
+  const horasNocturnas = tipo === 'Nocturna' ? horas : 0;
 
   const existente = await conn.query(
     `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2`,
@@ -41,14 +43,14 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, ti
   if (horas > 0) {
     if (existente.rows.length > 0) {
       await conn.query(
-        `UPDATE horas_extras SET horas = $1, tipo_hora_extra = $2 WHERE id = $3`,
-        [horas, tipo, existente.rows[0].id]
+        `UPDATE horas_extras SET horas = $1, tipo_hora_extra = $2, horas_diurnas = $3, horas_nocturnas = $4 WHERE id = $5`,
+        [horas, tipo, horasDiurnas, horasNocturnas, existente.rows[0].id]
       );
     } else {
       await conn.query(
-        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false, tipo]
+        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra, horas_diurnas, horas_nocturnas)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false, tipo, horasDiurnas, horasNocturnas]
       );
     }
 
