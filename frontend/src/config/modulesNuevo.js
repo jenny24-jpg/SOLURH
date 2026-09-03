@@ -278,6 +278,9 @@
           optionSource: '/empleado',
           optionValue: 'id',
           optionLabel: 'nombres',
+          labelTemplate: ['nombres', 'apellidos'],
+          searchable: true,
+          sortLabel: true,
         },
         { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
         {
