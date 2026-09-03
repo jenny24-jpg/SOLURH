@@ -279,14 +279,14 @@
         { name: 'fecha', label: 'Fecha', type: 'date', required: true, noFutureDate: true },
         {
           name: 'horas_diurnas',
-          label: 'Horas diurnas (si aplica)',
+          label: 'Horas diurnas',
           type: 'number',
           min: 0,
           splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Diurna' },
         },
         {
           name: 'horas_nocturnas',
-          label: 'Horas nocturnas (si aplica)',
+          label: 'Horas nocturnas',
           type: 'number',
           min: 0,
           splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Nocturna' },
