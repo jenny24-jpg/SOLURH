@@ -13,6 +13,7 @@ const SELECT_BASE = `
          a.fecha, e.nombres, e.apellidos,
          a.hora_entrada, a.hora_salida,
          he.horas AS horas_extra, he.tipo_hora_extra,
+         he.horas_diurnas, he.horas_nocturnas,
          e.cliente_id, c.nombre AS cliente, s.nombre AS supervisor,
          a.encargado_area_id, ea.nombre AS encargado_area, ea.area AS area,
          a.estado, a.observaciones, a.jornada, a.created_at

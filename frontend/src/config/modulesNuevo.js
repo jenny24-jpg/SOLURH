@@ -221,12 +221,7 @@
     title: 'Asistencias',
     endpoint: '/asistencia',
     icon: 'event_available',
-    hiddenCols: ['tipo_hora_extra'],
-    replaceCols: { horas_extra: ['horas_diurnas', 'horas_nocturnas'] },
-    virtualCols: [
-      { key: 'horas_diurnas', label: 'Horas D', compute: row => (row.tipo_hora_extra === 'Diurna' ? row.horas_extra : null) },
-      { key: 'horas_nocturnas', label: 'Horas N', compute: row => (row.tipo_hora_extra === 'Nocturna' ? row.horas_extra : null) },
-    ],
+    hiddenCols: ['horas_extra', 'tipo_hora_extra'],
     filters: [
       { key: 'supervisor', allLabel: 'Todos los supervisores' },
       { key: 'cliente', allLabel: 'Todos los clientes' },
