@@ -728,6 +728,8 @@ isSector
   };
 
   const [multiSelectSearch, setMultiSelectSearch] = useState({});
+  const [comboOpen, setComboOpen] = useState({});
+  const [comboQuery, setComboQuery] = useState({});
 
   const isArbolesEndpoint = endpoint === '/arbol';
 
@@ -1498,6 +1500,121 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                       })
                     )}
                     </div>
+                  </div>
+                ) : field.type === 'remote-select' && field.searchable ? (
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      className={`${s.input} ${fieldErrors[field.name] ? s.inputError : ''}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        opacity:
+                          loadingOptions[field.name] ||
+                          (field.dependsOn?.field && !form[field.dependsOn.field])
+                            ? 0.6
+                            : 1,
+                      }}
+                    >
+                      <span aria-hidden="true">🔍</span>
+                      <input
+                        type="text"
+                        placeholder={getRemotePlaceholder(field)}
+                        disabled={
+                          loadingOptions[field.name] ||
+                          (field.dependsOn?.field && !form[field.dependsOn.field])
+                        }
+                        value={
+                          comboOpen[field.name]
+                            ? (comboQuery[field.name] ?? '')
+                            : (getDependentOptions(field).find(
+                                o => String(o.value) === String(form[field.name] ?? '')
+                              )?.label ?? '')
+                        }
+                        onFocus={() => {
+                          setComboOpen(prev => ({ ...prev, [field.name]: true }));
+                          setComboQuery(prev => ({ ...prev, [field.name]: '' }));
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setComboOpen(prev => ({ ...prev, [field.name]: false }));
+                          }, 150);
+                        }}
+                        onChange={e =>
+                          setComboQuery(prev => ({ ...prev, [field.name]: e.target.value }))
+                        }
+                        style={{
+                          border: 'none',
+                          outline: 'none',
+                          flex: 1,
+                          fontSize: 14,
+                          background: 'transparent',
+                          color: 'inherit',
+                        }}
+                      />
+                    </div>
+
+                    {comboOpen[field.name] && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 4px)',
+                          left: 0,
+                          right: 0,
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                          background: '#fff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 8,
+                          boxShadow: '0 8px 24px rgba(0,0,0,.14)',
+                          zIndex: 50,
+                        }}
+                      >
+                        {loadingOptions[field.name] ? (
+                          <div style={{ padding: '10px 12px', fontSize: 13, color: '#6b7280' }}>
+                            Cargando opciones...
+                          </div>
+                        ) : (
+                          (() => {
+                            const query = (comboQuery[field.name] ?? '').trim().toLowerCase();
+                            const filteredOptions = getDependentOptions(field).filter(option =>
+                              !query || String(option.label ?? '').toLowerCase().includes(query)
+                            );
+
+                            if (filteredOptions.length === 0) {
+                              return (
+                                <div style={{ padding: '10px 12px', fontSize: 13, color: '#6b7280' }}>
+                                  Sin resultados
+                                </div>
+                              );
+                            }
+
+                            return filteredOptions.map(option => (
+                              <div
+                                key={`${field.name}-${option.value}`}
+                                onMouseDown={e => e.preventDefault()}
+                                onClick={() => {
+                                  set(field.name, option.value);
+                                  setComboQuery(prev => ({ ...prev, [field.name]: '' }));
+                                  setComboOpen(prev => ({ ...prev, [field.name]: false }));
+                                }}
+                                style={{
+                                  padding: '9px 12px',
+                                  fontSize: 14,
+                                  cursor: 'pointer',
+                                  background:
+                                    String(form[field.name] ?? '') === String(option.value)
+                                      ? '#eef2ff'
+                                      : '#fff',
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ));
+                          })()
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : field.type === 'remote-select' ? (
                   <select
