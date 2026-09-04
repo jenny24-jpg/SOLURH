@@ -144,12 +144,34 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
   const moduleHiddenCols = useMemo(() => new Set(cfg.hiddenCols || []), [cfg.hiddenCols]);
 
-  const cols = data.length > 0
-    ? Object.keys(data[0]).filter(
-        k => !HIDDEN_COLS.has(k) && !HIDDEN_COLS.has(k.toLowerCase())
-          && !moduleHiddenCols.has(k) && !moduleHiddenCols.has(k.toLowerCase())
-      )
-    : [];
+  const virtualColsMap = useMemo(() => {
+    const map = {};
+    (cfg.virtualCols || []).forEach(v => { map[v.key] = v; });
+    return map;
+  }, [cfg.virtualCols]);
+
+  const cols = useMemo(() => {
+    if (data.length === 0) return [];
+
+    const result = [];
+
+    Object.keys(data[0]).forEach(k => {
+      // Si esta columna real se "reemplaza" por columnas virtuales
+      // (ej. horas_extra → Horas D / Horas N), las insertamos en su lugar.
+      const replacement = cfg.replaceCols?.[k];
+      if (replacement) {
+        result.push(...replacement);
+        return;
+      }
+
+      if (HIDDEN_COLS.has(k) || HIDDEN_COLS.has(k.toLowerCase())) return;
+      if (moduleHiddenCols.has(k) || moduleHiddenCols.has(k.toLowerCase())) return;
+
+      result.push(k);
+    });
+
+    return result;
+  }, [data, moduleHiddenCols, cfg.replaceCols]);
 
   const pkVal = row => {
     const pkField = MODULE_PK[moduleKey];
@@ -471,7 +493,11 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                   <tbody>
                     {paginated.map((row, i) => (
                       <tr key={i} className={i % 2 === 0 ? s.rowE : s.rowO}>
-                        {cols.map(c => <td key={c}>{renderCell(c, row[c])}</td>)}
+                        {cols.map(c => (
+                          <td key={c}>
+                            {renderCell(c, virtualColsMap[c] ? virtualColsMap[c].compute(row) : row[c])}
+                          </td>
+                        ))}
                         <td>
                           <div className={s.actions}>
                             <ABtn icon="edit" tip="Editar" variant="edit" onClick={() => setModal(row)} />
