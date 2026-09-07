@@ -12,6 +12,7 @@ import GestionUsuarios      from './components/GestionUsuarios';
 import NotificacionesPanel  from './components/NotificacionesPanel';
 import HistorialCambios     from './components/HistorialCambios';
 import ReporteHistorialEstados from './components/ReporteHistorialEstados';
+import GaleriaFotosAsistencia from './components/GaleriaFotosAsistencia';
 
 export default function AppNuevo() {
   return (
@@ -143,9 +144,14 @@ const REQUIERE_ADMIN = new Set([
   'empleados', 'supervisores', 'historial-empleado',
 ]);
 
+// Estas requieren estrictamente el rol Administrador (rol_id = 1),
+// a diferencia de REQUIERE_ADMIN que también deja pasar a Supervisores.
+const REQUIERE_SOLO_ADMIN = new Set(['galeria-fotos']);
+
 function canAccess(key, rolId) {
   if (!key) return true;
   if (key === 'perfil') return true;
+  if (REQUIERE_SOLO_ADMIN.has(key)) return rolId === 1;
   if (REQUIERE_ADMIN.has(key)) return rolId <= 2;
   return true;
 }
@@ -164,6 +170,7 @@ function ActivePage({ activeKey, onSelect }) {
   if (activeKey === 'gestion-usuarios') return <GestionUsuarios onBack={() => onSelect('')} />;
   if (activeKey === 'historial-cambios') return <HistorialCambios onBack={() => onSelect('')} />;
   if (activeKey === 'reporte-historial-estados') return <ReporteHistorialEstados onBack={() => onSelect('')} />;
+  if (activeKey === 'galeria-fotos') return <GaleriaFotosAsistencia onBack={() => onSelect('')} />;
 
   if (activeKey === 'mapa-plano') {
     return (
