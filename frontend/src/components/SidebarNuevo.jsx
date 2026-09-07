@@ -6,18 +6,19 @@ import s from './SidebarNuevo.module.css';
 const DEFAULT_OPEN = []; // Todas cerradas al iniciar
 
 export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
-  const { logout, displayName, rolLabel, isAdmin, usuario } = useAuth();
+  const { logout, displayName, rolLabel, isAdmin, isSoloLectura, usuario } = useAuth();
+  const vePanelesAdmin = isAdmin || isSoloLectura; // "Órdenes" ve lo mismo que Admin, solo que sin poder editar
 
   const visibleSections = useMemo(
     () =>
       NAV_SECTIONS
-        .filter(sec => !sec.adminOnly || isAdmin)
+        .filter(sec => !sec.adminOnly || vePanelesAdmin)
         .map(sec => ({
           ...sec,
-          entries: sec.entries.filter(entry => !entry.adminOnly || isAdmin),
+          entries: sec.entries.filter(entry => !entry.adminOnly || vePanelesAdmin),
         }))
         .filter(sec => sec.entries.length > 0),
-    [isAdmin]
+    [vePanelesAdmin]
   );
 
   const [openSections, setOpenSections] = useState(() => {
@@ -145,7 +146,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
       </div>
 
       <div className={s.footer}>
-        {isAdmin && (
+        {vePanelesAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'historial-cambios' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('historial-cambios')}
@@ -155,7 +156,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
             <span>Historial de cambios</span>
           </button>
         )}
-        {isAdmin && (
+        {vePanelesAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'reporte-historial-estados' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('reporte-historial-estados')}
@@ -165,7 +166,7 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
             <span>Reporte historial estados</span>
           </button>
         )}
-        {isAdmin && (
+        {vePanelesAdmin && (
           <button
             className={`${s.adminBtn} ${activeKey === 'gestion-usuarios' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('gestion-usuarios')}

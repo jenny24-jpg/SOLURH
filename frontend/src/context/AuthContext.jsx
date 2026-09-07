@@ -193,16 +193,17 @@ export function AuthProvider({ children }) {
   };
 
   const rolIdActual = usuario?.ROL_ID ?? usuario?.rol_id ?? 3;
-  const isAdmin      = rolIdActual === 1;
-  const isSupervisor = rolIdActual === 2;
+  const isAdmin       = rolIdActual === 1;
+  const isSupervisor  = rolIdActual === 2;
+  const isSoloLectura = rolIdActual === 4; // rol "Órdenes": ve todo, no puede modificar nada
   const displayName = usuario?.NOMBRES ?? usuario?.nombres ?? usuario?.USERNAME ?? usuario?.username ?? 'Usuario';
-  const rolLabel    = isAdmin ? 'Administrador' : isSupervisor ? 'Supervisor' : 'Empleado';
+  const rolLabel    = isAdmin ? 'Administrador' : isSupervisor ? 'Supervisor' : isSoloLectura ? 'Órdenes' : 'Empleado';
 
   return (
     <AuthCtx.Provider value={{
       usuario, loading, iniciando,
       isLoggedIn: !!usuario,
-      isAdmin, isSupervisor, displayName, rolLabel,
+      isAdmin, isSupervisor, isSoloLectura, displayName, rolLabel,
       login, registrar, logout, actualizarPerfil, getToken,
       API,
       // Helper exportado para que cualquier componente pueda usarlo

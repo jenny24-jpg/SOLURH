@@ -488,8 +488,8 @@ export default function DashboardNuevo({ onSelect }) {
         <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
           <p style={{ margin: 0, fontWeight: 600, color: '#374151' }}>Panel de Gestión de Colaboradores</p>
           <p style={{ margin: '6px 0 0', fontSize: 12, color: '#6B7280' }}>
-            Desde este panel puedes consultar rápidamente el estado de los colaboradores, clientes,
-            supervisores, asistencias y horas extras registradas en el sistema.
+            
+            
           </p>
         </div>
       </section>

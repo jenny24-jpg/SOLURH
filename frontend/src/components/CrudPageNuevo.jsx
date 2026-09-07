@@ -4,7 +4,7 @@ import CrudFormNuevo from './CrudFormNuevo';
 import s from './CrudPageNuevo.module.css';
 import ExportarBtn from './ExportarBtn';
 import { Joyride } from 'react-joyride';
-import { API, apiFetch } from '../context/AuthContext';
+import { API, apiFetch, useAuth } from '../context/AuthContext';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -61,6 +61,7 @@ const isDateColumn = (col) => {
 export default function CrudPageNuevo({ moduleKey, onBack }) {
   const cfg = MODULES[moduleKey];
   const { title, endpoint, icon = 'dataset', filters: filterDefs = [] } = cfg;
+  const { isSoloLectura } = useAuth();
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -386,10 +387,12 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
               <span className={s.actionsDivider} />
 
-              <button className={`${s.btnAdd} tour-agregar`} onClick={() => setModal('new')} type="button">
-                <span className="material-icons">add</span>
-                <span className={s.btnLabel}>Agregar registro</span>
-              </button>
+              {!isSoloLectura && (
+                <button className={`${s.btnAdd} tour-agregar`} onClick={() => setModal('new')} type="button">
+                  <span className="material-icons">add</span>
+                  <span className={s.btnLabel}>Agregar registro</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -471,7 +474,7 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                   ? 'Prueba con otro término o limpia el filtro.'
                   : 'Aún no hay datos. Puedes crear el primer registro.'}
               </p>
-              {!search && (
+              {!search && !isSoloLectura && (
                 <button className={s.emptyBtn} onClick={() => setModal('new')} type="button">
                   <span className={s.iconCircle}>
                     <span className="material-icons">add</span>
@@ -487,7 +490,7 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                   <thead>
                     <tr>
                       {cols.map(c => <th key={c}>{colLabel(c)}</th>)}
-                      <th className={s.actionsCol}>Acciones</th>
+                      {!isSoloLectura && <th className={s.actionsCol}>Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -498,12 +501,14 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                             {renderCell(c, virtualColsMap[c] ? virtualColsMap[c].compute(row) : row[c])}
                           </td>
                         ))}
-                        <td>
-                          <div className={s.actions}>
-                            <ABtn icon="edit" tip="Editar" variant="edit" onClick={() => setModal(row)} />
-                            <ABtn icon="delete_outline" tip="Eliminar" variant="delete" onClick={() => setConfirmRow(row)} />
-                          </div>
-                        </td>
+                        {!isSoloLectura && (
+                          <td>
+                            <div className={s.actions}>
+                              <ABtn icon="edit" tip="Editar" variant="edit" onClick={() => setModal(row)} />
+                              <ABtn icon="delete_outline" tip="Eliminar" variant="delete" onClick={() => setConfirmRow(row)} />
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

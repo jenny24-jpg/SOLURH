@@ -5,6 +5,13 @@ const jwt = require('jsonwebtoken');
 
 const SECRET = process.env.JWT_SECRET || 'gestion_arboles_secret_2024';
 
+// Rol 4 = "Órdenes": ve todo igual que Administrador, pero no puede
+// crear, editar ni eliminar nada. Se bloquea a nivel de servidor
+// (no solo ocultando botones en el frontend) para que sea una
+// restricción real, sin importar por dónde llegue la petición.
+const ROL_SOLO_LECTURA = 4;
+const METODOS_LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 // Generar token
 const generarToken = (usuario) => {
   return jwt.sign(
@@ -19,6 +26,14 @@ const generarToken = (usuario) => {
   );
 };
 
+function bloquearSiSoloLectura(req, res) {
+  if (Number(req.usuario?.rol_id) === ROL_SOLO_LECTURA && !METODOS_LECTURA.has(req.method)) {
+    res.status(403).json({ ok: false, mensaje: 'Tu usuario es de solo lectura: puedes ver la información, pero no puedes agregar, editar ni eliminar nada.' });
+    return true;
+  }
+  return false;
+}
+
 // Middleware verificar token
 const verificarToken = (req, res, next) => {
   const auth = req.headers.authorization;
@@ -28,6 +43,7 @@ const verificarToken = (req, res, next) => {
   const token = auth.split(' ')[1];
   try {
     req.usuario = jwt.verify(token, SECRET);
+    if (bloquearSiSoloLectura(req, res)) return;
     next();
   } catch (err) {
     const msg = err.name === 'TokenExpiredError'
@@ -49,6 +65,7 @@ const verificarTokenOpcional = (req, res, next) => {
   try {
     const token = auth.split(' ')[1];
     req.usuario = jwt.verify(token, SECRET);
+    if (bloquearSiSoloLectura(req, res)) return;
     return next();
   } catch (err) {
     const msg = err.name === 'TokenExpiredError'

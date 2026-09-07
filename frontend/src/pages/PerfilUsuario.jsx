@@ -5,7 +5,7 @@ import s from './PerfilUsuario.module.css';
 import { API, apiFetch } from '../context/AuthContext';
 
 export default function PerfilUsuario({ onBack }) {
-  const { usuario, actualizarPerfil, loading, displayName, rolLabel } = useAuth();
+  const { usuario, actualizarPerfil, loading, displayName, rolLabel, isSoloLectura } = useAuth();
 
   // ── Datos personales ──────────────────────────────
   const [form, setForm] = useState({
@@ -228,10 +228,13 @@ const setF = (k, v) => {
 
             {errorInfo && <p className={s.error}>{errorInfo}</p>}
             {exitoInfo && <p className={s.exito}>{exitoInfo}</p>}
+            {isSoloLectura && (
+              <p className={s.error}>Tu usuario es de solo lectura: no puedes modificar estos datos.</p>
+            )}
 
             <div className={s.actions}>
               <button type="button" className={s.btnCancel} onClick={onBack}>Cancelar</button>
-              <button type="submit" className={s.btnSave} disabled={savingInfo || loading}>
+              <button type="submit" className={s.btnSave} disabled={savingInfo || loading || isSoloLectura}>
                 {(savingInfo || loading)
                   ? <span className={s.spinner} />
                   : <><span className="material-icons">save</span> Guardar cambios</>
@@ -335,13 +338,16 @@ const setF = (k, v) => {
 
             {errorPass && <p className={s.error}>{errorPass}</p>}
             {exitoPass && <p className={s.exito}>{exitoPass}</p>}
+            {isSoloLectura && (
+              <p className={s.error}>Tu usuario es de solo lectura: no puedes cambiar la contraseña por aquí.</p>
+            )}
 
             <div className={s.actions}>
               <button type="button" className={s.btnCancel}
                 onClick={() => { setPass({ actual:'', nueva:'', confirmar:'' }); setErrorPass(''); setExitoPass(''); }}>
                 Limpiar
               </button>
-              <button type="submit" className={s.btnSave} disabled={savingPass}>
+              <button type="submit" className={s.btnSave} disabled={savingPass || isSoloLectura}>
                 {savingPass
                   ? <span className={s.spinner} />
                   : <><span className="material-icons">lock</span> Cambiar contraseña</>

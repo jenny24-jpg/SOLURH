@@ -9,6 +9,7 @@ const ROLES = [
   { valor: 'admin',      id: 1, label: 'Administrador', color: '#8B2E2E', bg: '#FFEBEE' },
   { valor: 'supervisor', id: 2, label: 'Supervisor',     color: '#1B2A4D', bg: '#E8EDF5' },
   { valor: 'empleado',   id: 3, label: 'Empleado',       color: '#6B7280', bg: '#F3F4F6' },
+  { valor: 'ordenes',    id: 4, label: 'Órdenes',        color: '#7C5E10', bg: '#FFF6E0' },
 ];
 
 function getRolPorValor(valor) {
@@ -21,7 +22,7 @@ function get(obj, ...keys) {
 }
 
 export default function GestionUsuarios({ onBack }) {
-  const { usuario } = useAuth();
+  const { usuario, isSoloLectura } = useAuth();
   const [usuarios,    setUsuarios]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
@@ -116,12 +117,14 @@ export default function GestionUsuarios({ onBack }) {
               </span>
               <span>Actualizar</span>
             </button>
-            <button className={s.btnAdd} onClick={() => setModal('new')} type="button">
-              <span className={s.iconCircle}>
-                <span className="material-icons">person_add</span>
-              </span>
-              Nuevo usuario
-            </button>
+            {!isSoloLectura && (
+              <button className={s.btnAdd} onClick={() => setModal('new')} type="button">
+                <span className={s.iconCircle}>
+                  <span className="material-icons">person_add</span>
+                </span>
+                Nuevo usuario
+              </button>
+            )}
           </div>
         </div>
 
@@ -194,7 +197,7 @@ export default function GestionUsuarios({ onBack }) {
                   <th>Rol</th>
                   <th>Supervisor vinculado</th>
                   <th>Estado</th>
-                  <th>Acciones</th>
+                  {!isSoloLectura && <th>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -230,29 +233,31 @@ export default function GestionUsuarios({ onBack }) {
                           {estado}
                         </span>
                       </td>
-                      <td>
-                        <div className={s.actions}>
-                          <button className={s.actionEdit} onClick={() => setModal(u)} title="Editar" type="button">
-                            <span className="material-icons">edit</span>
-                          </button>
-                          {!esYo && (
-                            <button
-                              className={s.actionEdit}
-                              onClick={() => setResetModal({ id, username: get(u,'usuario') || `#${id}` })}
-                              title="Resetear contraseña"
-                              type="button"
-                              style={{ background:'#F1F5F9', color:'#94A3B8', border:'1px solid #E2E8F0' }}
-                            >
-                              <span className="material-icons">lock_reset</span>
+                      {!isSoloLectura && (
+                        <td>
+                          <div className={s.actions}>
+                            <button className={s.actionEdit} onClick={() => setModal(u)} title="Editar" type="button">
+                              <span className="material-icons">edit</span>
                             </button>
-                          )}
-                          {!esYo && (
-                            <button className={s.actionDelete} onClick={() => setConfirmId(id)} title="Eliminar" type="button">
-                              <span className="material-icons">delete_outline</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                            {!esYo && (
+                              <button
+                                className={s.actionEdit}
+                                onClick={() => setResetModal({ id, username: get(u,'usuario') || `#${id}` })}
+                                title="Resetear contraseña"
+                                type="button"
+                                style={{ background:'#F1F5F9', color:'#94A3B8', border:'1px solid #E2E8F0' }}
+                              >
+                                <span className="material-icons">lock_reset</span>
+                              </button>
+                            )}
+                            {!esYo && (
+                              <button className={s.actionDelete} onClick={() => setConfirmId(id)} title="Eliminar" type="button">
+                                <span className="material-icons">delete_outline</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -525,12 +530,12 @@ function ModalUsuario({ editItem, onClose, onSaved }) {
                       onChange={() => set('rol', r.valor)}
                     />
                     <span className="material-icons" style={{ color: form.rol === r.valor ? r.color : 'var(--tierra-calida)', fontSize:18 }}>
-                      {r.valor === 'admin' ? 'security' : r.valor === 'supervisor' ? 'supervisor_account' : 'engineering'}
+                      {r.valor === 'admin' ? 'security' : r.valor === 'supervisor' ? 'supervisor_account' : r.valor === 'ordenes' ? 'visibility' : 'engineering'}
                     </span>
                     <div>
                       <p style={{ fontSize:12, fontWeight:700, color: form.rol === r.valor ? r.color : 'var(--verde-profundo)' }}>{r.label}</p>
                       <p style={{ fontSize:10, color:'var(--tierra-calida)' }}>
-                        {r.valor==='admin' ? 'Acceso total al sistema' : r.valor==='supervisor' ? 'Solo ve los datos de sus clientes' : 'Acceso operativo básico'}
+                        {r.valor==='admin' ? 'Acceso total al sistema' : r.valor==='supervisor' ? 'Solo ve los datos de sus clientes' : r.valor==='ordenes' ? 'Ve todo, no puede modificar nada' : 'Acceso operativo básico'}
                       </p>
                     </div>
                   </label>

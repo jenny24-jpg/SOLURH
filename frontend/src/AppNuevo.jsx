@@ -151,8 +151,9 @@ const REQUIERE_SOLO_ADMIN = new Set(['galeria-fotos']);
 function canAccess(key, rolId) {
   if (!key) return true;
   if (key === 'perfil') return true;
-  if (REQUIERE_SOLO_ADMIN.has(key)) return rolId === 1;
-  if (REQUIERE_ADMIN.has(key)) return rolId <= 2;
+  // rol 4 = "Órdenes": ve todo lo que ve Administrador, sin poder editar nada.
+  if (REQUIERE_SOLO_ADMIN.has(key)) return rolId === 1 || rolId === 4;
+  if (REQUIERE_ADMIN.has(key)) return rolId <= 2 || rolId === 4;
   return true;
 }
 

@@ -10,7 +10,7 @@ function usuarioAuditoria(req) {
   return { usuarioId: req.usuario?.id || null, usuarioNombre: req.usuario?.username || 'Sistema' };
 }
 
-const ROL_A_ID = { admin: 1, administrador: 1, supervisor: 2, empleado: 3 };
+const ROL_A_ID = { admin: 1, administrador: 1, supervisor: 2, empleado: 3, ordenes: 4, órdenes: 4 };
 const rolTextoAId = (rolTexto) => ROL_A_ID[String(rolTexto || '').toLowerCase()] ?? 3;
 
 const login = async (req, res) => {
