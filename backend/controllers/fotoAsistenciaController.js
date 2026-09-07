@@ -3,6 +3,10 @@
 // ============================================================
 const { getConnection, closeConnection } = require('../config/db');
 const { registrar: registrarAuditoria } = require('./auditoriaController');
+const supabase = require('../config/supabaseClient');
+
+const BUCKET = 'documentos';
+const CARPETA_FOTOS = 'asistencias';
 
 function usuarioAuditoria(req) {
   return { usuarioId: req.usuario?.id || null, usuarioNombre: req.usuario?.username || 'Sistema' };
@@ -41,6 +45,89 @@ const listar = async (req, res) => {
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
     await closeConnection(conn);
+  }
+};
+
+// Lista TODO lo que existe físicamente en el bucket de Supabase (carpeta
+// "asistencias"), sin importar si el formulario llegó a guardarse en la
+// base de datos. Cuando existe un registro en fotos_asistencia que
+// corresponde a ese archivo, se le agregan sus datos (supervisor, cliente,
+// fecha, observación, intento); si no, se muestra igual pero marcado como
+// "sin registro" con los datos que da el propio Storage (nombre y fecha
+// de subida).
+const EXTENSIONES_IMAGEN = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic'];
+const esImagen = (nombre) => EXTENSIONES_IMAGEN.some(ext => nombre.toLowerCase().endsWith(ext));
+
+const listarTodasDeStorage = async (req, res) => {
+  try {
+    // 1) Fotos ya organizadas en su propia carpeta (subidas nuevas, en adelante).
+    const { data: archivosCarpeta, error: errCarpeta } = await supabase.storage
+      .from(BUCKET)
+      .list(CARPETA_FOTOS, { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+    if (errCarpeta) {
+      return res.status(500).json({ ok: false, mensaje: `Error al leer Supabase Storage: ${errCarpeta.message}` });
+    }
+
+    // 2) Fotos "viejas" que quedaron sueltas en la raíz del bucket (subidas
+    // antes de existir la carpeta "asistencias"). Se filtran solo imágenes,
+    // porque en la raíz también hay documentos de empleados (PDFs, etc).
+    const { data: archivosRaiz, error: errRaiz } = await supabase.storage
+      .from(BUCKET)
+      .list('', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+    if (errRaiz) {
+      return res.status(500).json({ ok: false, mensaje: `Error al leer Supabase Storage: ${errRaiz.message}` });
+    }
+
+    const deCarpeta = (archivosCarpeta || [])
+      .filter(a => a.id) // excluye "placeholders" de carpetas
+      .map(a => ({ archivo: a, ruta: `${CARPETA_FOTOS}/${a.name}` }));
+
+    const deRaiz = (archivosRaiz || [])
+      .filter(a => a.id && esImagen(a.name)) // excluye carpetas y documentos no-imagen
+      .map(a => ({ archivo: a, ruta: a.name }));
+
+    const todos = [...deCarpeta, ...deRaiz];
+
+    let conn;
+    let registros = [];
+    try {
+      conn = await getConnection();
+      const result = await conn.query(`${SELECT_BASE} ORDER BY f.fecha_subida DESC`);
+      registros = result.rows;
+    } finally {
+      await closeConnection(conn);
+    }
+
+    const data = todos.map(({ archivo, ruta }) => {
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(ruta);
+      const urlPublica = urlData.publicUrl;
+
+      const registro = registros.find(r => r.url_foto && r.url_foto.endsWith(archivo.name));
+
+      if (registro) {
+        return { ...registro, url_foto: urlPublica, registrado: true };
+      }
+
+      return {
+        id: null,
+        supervisor_id: null,
+        fecha: null,
+        intento: null,
+        url_foto: urlPublica,
+        fecha_subida: archivo.created_at || archivo.updated_at || null,
+        observacion: null,
+        supervisor: null,
+        cliente: null,
+        nombre_archivo: archivo.name,
+        registrado: false,
+      };
+    });
+
+    data.sort((a, b) => new Date(b.fecha_subida || 0) - new Date(a.fecha_subida || 0));
+
+    res.status(200).json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
   }
 };
 
@@ -145,4 +232,4 @@ const eliminar = async (req, res) => {
   }
 };
 
-module.exports = { listar, obtenerPorId, listarPorAsistencia, insertar, eliminar };
+module.exports = { listar, listarTodasDeStorage, obtenerPorId, listarPorAsistencia, insertar, eliminar };

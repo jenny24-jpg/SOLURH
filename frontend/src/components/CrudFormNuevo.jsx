@@ -416,7 +416,7 @@ isSector
     });
   };
 
-  const handleFileUpload = async (fieldName, file) => {
+  const handleFileUpload = async (fieldName, file, carpeta) => {
     if (!file) return;
 
     setUploadingFile(prev => ({ ...prev, [fieldName]: true }));
@@ -425,6 +425,7 @@ isSector
     try {
       const formData = new FormData();
       formData.append('archivo', file);
+      if (carpeta) formData.append('carpeta', carpeta);
 
       const res = await apiFetch(`${API}/upload`, {
         method: 'POST',
@@ -1662,7 +1663,7 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                     <input
                       type="file"
                       accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={e => handleFileUpload(field.name, e.target.files[0])}
+                      onChange={e => handleFileUpload(field.name, e.target.files[0], field.folder)}
                       className={s.input}
                     />
                     {uploadingFile[field.name] && (

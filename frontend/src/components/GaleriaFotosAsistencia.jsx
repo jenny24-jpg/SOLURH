@@ -62,7 +62,7 @@ export default function GaleriaFotosAsistencia({ onBack }) {
   const fetchData = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res  = await apiFetch(`${API}/foto-asistencia`);
+      const res  = await apiFetch(`${API}/foto-asistencia/storage/todas`);
       const json = await res.json();
       if (json.ok || json.success) {
         setData(Array.isArray(json.data) ? json.data : []);
@@ -210,6 +210,7 @@ export default function GaleriaFotosAsistencia({ onBack }) {
               const fecha      = formatFecha(get(item,'fecha'));
               const intento    = get(item,'intento');
               const observ     = get(item,'observacion');
+              const sinRegistro = item.registrado === false;
 
               return (
                 <div
@@ -227,6 +228,7 @@ export default function GaleriaFotosAsistencia({ onBack }) {
                       onClick={() => setPreview(item)}
                     />
                     {intento != null && <span className={s.badge}>Intento {intento}</span>}
+                    {sinRegistro && <span className={s.badgeWarn}>Sin registro</span>}
                     <div className={s.overlay}>
                       <button
                         className={s.overlayBtn}
@@ -248,16 +250,29 @@ export default function GaleriaFotosAsistencia({ onBack }) {
                   </div>
 
                   <div className={s.cardBody}>
-                    <p className={s.cardCliente}>{cliente}</p>
-                    <p className={s.cardSupervisor}>
-                      <span className="material-icons">person_outline</span>
-                      {supervisor}
-                    </p>
-                    <div className={s.cardMeta}>
-                      <span className="material-icons">event</span>
-                      <span>{fecha}</span>
-                    </div>
-                    {observ && <p className={s.cardObs}>{observ}</p>}
+                    {sinRegistro ? (
+                      <>
+                        <p className={s.cardCliente}>Sin registro en el sistema</p>
+                        <div className={s.cardMeta}>
+                          <span className="material-icons">event</span>
+                          <span>Subida: {formatFecha(get(item,'fecha_subida'))}</span>
+                        </div>
+                        <p className={s.cardObs} title={item.nombre_archivo}>{item.nombre_archivo}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className={s.cardCliente}>{cliente}</p>
+                        <p className={s.cardSupervisor}>
+                          <span className="material-icons">person_outline</span>
+                          {supervisor}
+                        </p>
+                        <div className={s.cardMeta}>
+                          <span className="material-icons">event</span>
+                          <span>{fecha}</span>
+                        </div>
+                        {observ && <p className={s.cardObs}>{observ}</p>}
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -270,7 +285,11 @@ export default function GaleriaFotosAsistencia({ onBack }) {
       {preview && (
         <div className={s.lightbox} onClick={() => setPreview(null)}>
           <div className={s.lightboxTop}>
-            <span>{get(preview,'cliente')} · {get(preview,'supervisor')} · {formatFecha(get(preview,'fecha'))}</span>
+            <span>
+              {preview.registrado === false
+                ? `Sin registro · ${preview.nombre_archivo}`
+                : `${get(preview,'cliente')} · ${get(preview,'supervisor')} · ${formatFecha(get(preview,'fecha'))}`}
+            </span>
             <div className={s.lightboxActions}>
               <button
                 type="button"
