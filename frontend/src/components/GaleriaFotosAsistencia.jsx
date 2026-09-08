@@ -230,7 +230,7 @@ export default function GaleriaFotosAsistencia({ onBack }) {
                     {intento != null && <span className={s.badge}>Intento {intento}</span>}
                     {sinRegistro && <span className={s.badgeWarn}>Sin registro</span>}
                     <div className={s.overlay}>
-                                           <button
+                      <button
                         className={s.overlayBtn}
                         type="button"
                         title="Expandir"

@@ -407,6 +407,7 @@
     {
       title: 'Registros',
       entries: [
+        { key: 'reporte-personal-cliente', label: 'Personal por cliente', icon: 'groups', adminOnly: true },
         { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history', adminOnly: true },
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },
         { key: 'galeria-fotos', label: 'Todas las asistencias', icon: 'collections', adminOnly: true },

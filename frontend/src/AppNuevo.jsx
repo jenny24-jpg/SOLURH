@@ -13,6 +13,7 @@ import NotificacionesPanel  from './components/NotificacionesPanel';
 import HistorialCambios     from './components/HistorialCambios';
 import ReporteHistorialEstados from './components/ReporteHistorialEstados';
 import GaleriaFotosAsistencia from './components/GaleriaFotosAsistencia';
+import ReportePersonalPorCliente from './components/ReportePersonalPorCliente';
 
 export default function AppNuevo() {
   return (
@@ -140,7 +141,7 @@ function MainLayout() {
 
 // ── Permisos por rol ──────────────────────────────
 const REQUIERE_ADMIN = new Set([
-  'historial-cambios', 'reporte-historial-estados',
+  'historial-cambios', 'reporte-historial-estados', 'reporte-personal-cliente',
   'empleados', 'supervisores', 'historial-empleado',
 ]);
 
@@ -172,6 +173,7 @@ function ActivePage({ activeKey, onSelect }) {
   if (activeKey === 'historial-cambios') return <HistorialCambios onBack={() => onSelect('')} />;
   if (activeKey === 'reporte-historial-estados') return <ReporteHistorialEstados onBack={() => onSelect('')} />;
   if (activeKey === 'galeria-fotos') return <GaleriaFotosAsistencia onBack={() => onSelect('')} />;
+  if (activeKey === 'reporte-personal-cliente') return <ReportePersonalPorCliente onBack={() => onSelect('')} />;
 
   if (activeKey === 'mapa-plano') {
     return (
