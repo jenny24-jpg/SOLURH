@@ -44,7 +44,7 @@ const reglasUsuario = [
     .isLength({ min: 3, max: 150 }).withMessage('El nombre completo debe tener entre 3 y 150 caracteres'),
   body('rol')
     .optional({ nullable: true, checkFalsy: true })
-    .isIn(['admin', 'supervisor', 'empleado']).withMessage('El rol debe ser admin, supervisor o empleado'),
+    .isIn(['admin', 'supervisor', 'empleado', 'ordenes']).withMessage('El rol debe ser admin, supervisor, empleado u órdenes'),
   body('estado')
     .optional({ nullable: true, checkFalsy: true })
     .isIn(['activo', 'inactivo']).withMessage('El estado debe ser activo o inactivo'),
