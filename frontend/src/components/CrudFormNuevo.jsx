@@ -1005,7 +1005,11 @@ isSector
     // Se activa cuando el módulo tiene un campo remote-multiselect
     // y un par de campos de rango de fecha (rangeRole: start/end),
     // y no estamos editando un registro existente.
-    const multiField = fields.find(f => f.type === 'remote-multiselect');
+    const multiField = fields.find(f => f.type === 'remote-multiselect' && !f.bulkLoop);
+    // Campo remote-multiselect "secundario" (ej. Encargado de área): si tiene
+    // varios valores seleccionados, se genera un registro extra por cada uno
+    // (misma persona, mismo día, un encargado distinto en cada registro).
+    const secondaryMultiField = fields.find(f => f.type === 'remote-multiselect' && f.bulkLoop);
     const rangeStartField = fields.find(f => f.rangeRole === 'start');
     const rangeEndField = fields.find(f => f.rangeRole === 'end');
     const isBulkMode = !isEdit && multiField && rangeStartField && rangeEndField;
@@ -1024,11 +1028,23 @@ isSector
         cursor.setDate(cursor.getDate() + 1);
       }
 
+      // Valores del campo secundario a recorrer. Si no hay campo secundario,
+      // o no se seleccionó ninguno, se usa [null] para generar un solo
+      // registro por empleado/fecha (comportamiento anterior, sin cambios).
+      let secondaryValues = [null];
+      if (secondaryMultiField) {
+        const arr = Array.isArray(form[secondaryMultiField.name])
+          ? form[secondaryMultiField.name]
+          : [];
+        secondaryValues = arr.length > 0 ? arr : [null];
+      }
+
       const otherFields = fields.filter(
         f =>
           f.name !== multiField.name &&
           f.name !== rangeStartField.name &&
-          f.name !== rangeEndField.name
+          f.name !== rangeEndField.name &&
+          f !== secondaryMultiField
       );
 
       const baseBody = {};
@@ -1043,31 +1059,42 @@ isSector
 
       for (const empId of employeeIds) {
         for (const dateStr of dateList) {
-          const body = {
-            ...baseBody,
-            [multiField.name]:
-              multiField.valueType === 'string' ? String(empId) : Number(empId),
-            [rangeStartField.rangeTarget]: dateStr,
-          };
+          for (const secVal of secondaryValues) {
+            const body = {
+              ...baseBody,
+              [multiField.name]:
+                multiField.valueType === 'string' ? String(empId) : Number(empId),
+              [rangeStartField.rangeTarget]: dateStr,
+            };
 
-          try {
-            const res = await apiFetch(`${API}${endpoint}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
-
-            const json = await res.json();
-
-            if (json.ok === true || json.success === true) {
-              successCount += 1;
-            } else {
-              failCount += 1;
-              lastErrorMsg = json.mensaje ?? json.message ?? 'Error al guardar';
+            if (secondaryMultiField) {
+              body[secondaryMultiField.name] =
+                secVal === null
+                  ? null
+                  : secondaryMultiField.valueType === 'string'
+                    ? String(secVal)
+                    : Number(secVal);
             }
-          } catch {
-            failCount += 1;
-            lastErrorMsg = 'Error de conexión';
+
+            try {
+              const res = await apiFetch(`${API}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+
+              const json = await res.json();
+
+              if (json.ok === true || json.success === true) {
+                successCount += 1;
+              } else {
+                failCount += 1;
+                lastErrorMsg = json.mensaje ?? json.message ?? 'Error al guardar';
+              }
+            } catch {
+              failCount += 1;
+              lastErrorMsg = 'Error de conexión';
+            }
           }
         }
       }

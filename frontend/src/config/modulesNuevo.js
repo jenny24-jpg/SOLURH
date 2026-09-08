@@ -254,10 +254,13 @@
       {
         name: 'encargado_area_id',
         label: 'Encargado de área',
-        type: 'remote-select',
+        type: 'remote-multiselect',
         optionSource: '/encargado-area',
         optionValue: 'id',
         labelTemplate: ['nombre', 'area'],
+        searchable: true,
+        sortLabel: true,
+        bulkLoop: true,
         dependsOn: {
           field: 'cliente_id',
           queryParam: 'cliente_id',
