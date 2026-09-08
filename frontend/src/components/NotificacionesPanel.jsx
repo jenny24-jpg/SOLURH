@@ -43,7 +43,7 @@ export default function NotificacionesPanel({ onSelect }) {
 
   const [leidas, setLeidas] = useState(() => {
     try {
-      return new Set(JSON.parse(sessionStorage.getItem('notifs_leidas') || '[]'));
+      return new Set(JSON.parse(localStorage.getItem('notifs_leidas') || '[]'));
     } catch {
       return new Set();
     }
@@ -171,7 +171,7 @@ export default function NotificacionesPanel({ onSelect }) {
       next.add(id);
 
       try {
-        sessionStorage.setItem('notifs_leidas', JSON.stringify([...next]));
+        localStorage.setItem('notifs_leidas', JSON.stringify([...next]));
       } catch {}
 
       return next;
@@ -185,7 +185,7 @@ export default function NotificacionesPanel({ onSelect }) {
       const next = new Set([...prev, ...ids]);
 
       try {
-        sessionStorage.setItem('notifs_leidas', JSON.stringify([...next]));
+        localStorage.setItem('notifs_leidas', JSON.stringify([...next]));
       } catch {}
 
       return next;
