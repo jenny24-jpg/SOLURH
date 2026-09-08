@@ -78,6 +78,13 @@ const verificarTokenOpcional = (req, res, next) => {
 // Middleware verificar rol mínimo
 const requiereRol = (rolMinimo) => (req, res, next) => {
   if (!req.usuario) return res.status(401).json({ ok: false, mensaje: 'No autenticado' });
+
+  // El rol "Órdenes" (solo lectura) ve todo igual que Administrador.
+  // Sus peticiones de escritura ya quedaron bloqueadas antes de llegar
+  // aquí (ver bloquearSiSoloLectura), así que aquí solo puede tratarse
+  // de una consulta de lectura: se le deja pasar sin importar rolMinimo.
+  if (Number(req.usuario.rol_id ?? 3) === ROL_SOLO_LECTURA) return next();
+
   if ((req.usuario.rol_id ?? 3) > rolMinimo) {
     return res.status(403).json({ ok: false, mensaje: 'No tienes permisos para esta acción' });
   }
