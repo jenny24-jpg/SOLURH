@@ -40,14 +40,7 @@ export default function NotificacionesPanel({ onSelect }) {
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const [leidas, setLeidas] = useState(() => {
-    try {
-      return new Set(JSON.parse(localStorage.getItem('notifs_leidas') || '[]'));
-    } catch {
-      return new Set();
-    }
-  });
+  const [leidas, setLeidas] = useState(new Set());
 
   const ref = useRef(null);
 
@@ -60,6 +53,30 @@ export default function NotificacionesPanel({ onSelect }) {
 
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Carga las notificaciones "leídas" guardadas para este usuario,
+  // sin importar desde qué dispositivo o navegador entre.
+  useEffect(() => {
+    let mounted = true;
+
+    const cargarLeidas = async () => {
+      try {
+        const res = await apiFetch(`${API}/notificacion-leida`);
+        const json = await res.json();
+        if (mounted && json.ok) {
+          setLeidas(new Set(Array.isArray(json.data) ? json.data : []));
+        }
+      } catch {
+        // Si falla, simplemente empieza vacío; no es crítico.
+      }
+    };
+
+    cargarLeidas();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -166,30 +183,30 @@ export default function NotificacionesPanel({ onSelect }) {
   const noLeidas = notifs.filter(n => !leidas.has(n.id)).length;
 
   const marcarLeida = id => {
+    // Actualización optimista: se ve al instante en pantalla.
     setLeidas(prev => {
       const next = new Set(prev);
       next.add(id);
-
-      try {
-        localStorage.setItem('notifs_leidas', JSON.stringify([...next]));
-      } catch {}
-
       return next;
     });
+
+    apiFetch(`${API}/notificacion-leida`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notif_id: id }),
+    }).catch(() => {});
   };
 
   const marcarTodas = () => {
     const ids = notifs.map(n => n.id);
 
-    setLeidas(prev => {
-      const next = new Set([...prev, ...ids]);
+    setLeidas(prev => new Set([...prev, ...ids]));
 
-      try {
-        localStorage.setItem('notifs_leidas', JSON.stringify([...next]));
-      } catch {}
-
-      return next;
-    });
+    apiFetch(`${API}/notificacion-leida/varias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notif_ids: ids }),
+    }).catch(() => {});
   };
 
   const irSeguimiento = (n) => {

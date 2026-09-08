@@ -57,6 +57,7 @@ app.use('/api/asistencia', require('./routes/asistenciaRoutes'));
 app.use('/api/documento-empleado', require('./routes/documentoempleadoRoutes'));
 app.use('/api/foto-asistencia', require('./routes/fotoasistenciaRoutes'));
 app.use('/api/historial-empleado', require('./routes/historialempleadoRoutes'));
+app.use('/api/notificacion-leida', require('./routes/notificacionLeidaRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // ── Error handler global (siempre al final) ───────────────
