@@ -230,13 +230,13 @@ export default function GaleriaFotosAsistencia({ onBack }) {
                     {intento != null && <span className={s.badge}>Intento {intento}</span>}
                     {sinRegistro && <span className={s.badgeWarn}>Sin registro</span>}
                     <div className={s.overlay}>
-                      <button
+                                           <button
                         className={s.overlayBtn}
                         type="button"
-                        title="Ver imagen"
-                        onClick={(e) => { e.stopPropagation(); window.open(item.url_foto, '_blank', 'noopener,noreferrer'); }}
+                        title="Expandir"
+                        onClick={(e) => { e.stopPropagation(); setPreview(item); }}
                       >
-                        <span className="material-icons">open_in_new</span>
+                        <span className="material-icons">zoom_in</span>
                       </button>
                       <button
                         className={s.overlayBtn}
