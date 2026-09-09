@@ -102,7 +102,16 @@ const listarTodasDeStorage = async (req, res) => {
       const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(ruta);
       const urlPublica = urlData.publicUrl;
 
-      const registro = registros.find(r => r.url_foto && r.url_foto.endsWith(archivo.name));
+      // IMPORTANTE: se compara contra la RUTA COMPLETA (incluye carpeta),
+      // no solo el nombre del archivo. Comparar solo por nombre (antes:
+      // `url_foto.endsWith(archivo.name)`) podía confundir dos fotos con
+      // el mismo nombre subidas por supervisores distintos (muy común en
+      // fotos de celular, ej. "IMG_0001.jpg"), pegándole a una foto el
+      // cliente/supervisor de otra. El '/' antes de la ruta asegura que
+      // coincida el segmento de carpeta completo, no un sufijo parcial.
+      const registro = registros.find(
+        r => r.url_foto && r.url_foto.endsWith(`/${ruta}`)
+      );
 
       if (registro) {
         return { ...registro, url_foto: urlPublica, registrado: true };
