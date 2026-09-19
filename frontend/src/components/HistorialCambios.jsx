@@ -22,23 +22,29 @@ const OP_COLOR = {
   DELETE: { bg:'#FFEBEE', color:'#17157e', icon:'delete'     },
 };
 
+// Convierte la fecha/hora guardada en el servidor (UTC) a la hora real de
+// Guatemala (UTC-6), y muestra fecha + hora juntas.
 function formatFecha(val) {
   if (!val) return '—';
-  // Si viene como string puro de fecha (sin hora real), mostrar solo fecha
-  if (typeof val === 'string') {
-    // Extraer solo YYYY-MM-DD ignorando la parte de hora
-    const soloFecha = val.slice(0, 10); // "2024-04-22"
-    const [anio, mes, dia] = soloFecha.split('-');
-    if (anio && mes && dia) {
-      const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      return `${dia} ${meses[parseInt(mes,10)-1]} ${anio}`;
-    }
-  }
+
   const d = val instanceof Date ? val : new Date(val);
-  if (isNaN(d)) return '—';
-  return d.toLocaleDateString('es-GT', {
-    day:'2-digit', month:'short', year:'numeric'
+  if (isNaN(d.getTime())) return '—';
+
+  const fecha = d.toLocaleDateString('es-GT', {
+    timeZone: 'America/Guatemala',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
+
+  const hora = d.toLocaleTimeString('es-GT', {
+    timeZone: 'America/Guatemala',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return `${fecha}, ${hora}`;
 }
 
 function get(obj, ...keys) {

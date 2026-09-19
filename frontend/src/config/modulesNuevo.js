@@ -433,6 +433,7 @@
         { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history', adminOnly: true },
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },
         { key: 'galeria-fotos', label: 'Todas las asistencias', icon: 'collections', adminOnly: true },
+        { key: 'historial-cambios', label: 'Historial de cambios', icon: 'history', adminOnly: true },
       ],
     },
   ];

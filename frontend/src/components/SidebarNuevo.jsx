@@ -148,16 +148,6 @@ export default function SidebarNuevo({ activeKey, onSelect, mode = 'full' }) {
       <div className={s.footer}>
         {vePanelesAdmin && (
           <button
-            className={`${s.adminBtn} ${activeKey === 'historial-cambios' ? s.adminBtnActive : ''}`}
-            onClick={() => onSelect('historial-cambios')}
-            type="button"
-          >
-            <span className="material-icons">history</span>
-            <span>Historial de cambios</span>
-          </button>
-        )}
-        {vePanelesAdmin && (
-          <button
             className={`${s.adminBtn} ${activeKey === 'reporte-historial-estados' ? s.adminBtnActive : ''}`}
             onClick={() => onSelect('reporte-historial-estados')}
             type="button"
