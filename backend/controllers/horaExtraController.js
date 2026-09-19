@@ -9,7 +9,7 @@ function usuarioAuditoria(req) {
 }
 
 const SELECT_BASE = `
-  SELECT h.*, e.nombres, e.apellidos, e.supervisor_id
+  SELECT h.*, e.nombres, e.apellidos, e.supervisor_id, e.supervisor_id_2
   FROM horas_extras h
   LEFT JOIN empleados e ON e.id = h.empleado_id
 `;
@@ -23,7 +23,7 @@ const listar = async (req, res) => {
     const supervisorId = req.usuario?.supervisor_id;
 
     const query = esSupervisor && supervisorId
-      ? `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY h.fecha DESC`
+      ? `${SELECT_BASE} WHERE (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY h.fecha DESC`
       : `${SELECT_BASE} ORDER BY h.fecha DESC`;
 
     const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];

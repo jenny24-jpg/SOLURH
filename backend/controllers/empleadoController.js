@@ -8,13 +8,14 @@ function usuarioAuditoria(req) {
   return { usuarioId: req.usuario?.id || null, usuarioNombre: req.usuario?.username || 'Sistema' };
 }
 
-// Trae también el nombre del cliente y del supervisor, para no tener
-// que hacer consultas extra desde el frontend.
+// Trae también el nombre del cliente y de ambos supervisores, para no
+// tener que hacer consultas extra desde el frontend.
 const SELECT_BASE = `
-  SELECT e.*, c.nombre AS cliente, s.nombre AS supervisor
+  SELECT e.*, c.nombre AS cliente, s.nombre AS supervisor, s2.nombre AS supervisor_2
   FROM empleados e
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
+  LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
 `;
 
 const listar = async (req, res) => {
@@ -23,12 +24,13 @@ const listar = async (req, res) => {
     conn = await getConnection();
 
     // Si quien consulta es un usuario de tipo "supervisor" (rol_id === 2),
-    // solo ve los empleados que están bajo su propio supervisor_id.
+    // solo ve los empleados que están bajo su propio supervisor_id, ya sea
+    // como supervisor principal o como segundo supervisor.
     const esSupervisor = Number(req.usuario?.rol_id) === 2;
     const supervisorId = req.usuario?.supervisor_id;
 
     const query = esSupervisor && supervisorId
-      ? `${SELECT_BASE} WHERE e.estado = 'ACTIVO' AND e.supervisor_id = $1 ORDER BY e.apellidos, e.nombres`
+      ? `${SELECT_BASE} WHERE e.estado = 'ACTIVO' AND (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY e.apellidos, e.nombres`
       : `${SELECT_BASE} WHERE e.estado = 'ACTIVO' ORDER BY e.apellidos, e.nombres`;
 
     const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
@@ -60,7 +62,7 @@ const obtenerPorId = async (req, res) => {
 const insertar = async (req, res) => {
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, jornada,
+    cliente_id, supervisor_id, supervisor_id_2, jornada,
     fecha_ingreso, salario, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -80,6 +82,9 @@ const insertar = async (req, res) => {
   if (!supervisor_id) {
     return res.status(400).json({ ok: false, mensaje: 'El supervisor es requerido.' });
   }
+  if (supervisor_id_2 && Number(supervisor_id_2) === Number(supervisor_id)) {
+    return res.status(400).json({ ok: false, mensaje: 'El segundo supervisor debe ser diferente al primero.' });
+  }
   if (!jornada) {
     return res.status(400).json({ ok: false, mensaje: 'La jornada es requerida.' });
   }
@@ -92,8 +97,8 @@ const insertar = async (req, res) => {
     conn = await getConnection();
     const result = await conn.query(
       `INSERT INTO empleados
-        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVO',$10,$11,$12,$13,$14,$15, NOW())
+        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, supervisor_id_2, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'ACTIVO',$11,$12,$13,$14,$15,$16, NOW())
        RETURNING id`,
       [
         nombres.trim(),
@@ -102,6 +107,7 @@ const insertar = async (req, res) => {
         nit || null,
         Number(cliente_id),
         Number(supervisor_id),
+        supervisor_id_2 ? Number(supervisor_id_2) : null,
         jornada,
         fecha_ingreso,
         salario || null,
@@ -135,7 +141,7 @@ const actualizar = async (req, res) => {
   const { id_empleado } = req.params;
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, jornada,
+    cliente_id, supervisor_id, supervisor_id_2, jornada,
     fecha_ingreso, salario, estado, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -146,6 +152,9 @@ const actualizar = async (req, res) => {
   if (!apellidos || String(apellidos).trim().length < 2) {
     return res.status(400).json({ ok: false, mensaje: 'El apellido es requerido.' });
   }
+  if (supervisor_id_2 && Number(supervisor_id_2) === Number(supervisor_id)) {
+    return res.status(400).json({ ok: false, mensaje: 'El segundo supervisor debe ser diferente al primero.' });
+  }
 
   let conn;
   try {
@@ -153,10 +162,10 @@ const actualizar = async (req, res) => {
     await conn.query(
       `UPDATE empleados SET
         nombres=$1, apellidos=$2, dpi=$3, nit=$4,
-        cliente_id=$5, supervisor_id=$6, jornada=$7,
-        fecha_ingreso=$8, salario=$9, estado=$10, observaciones=$11, fotografia=$12,
-        banco=$13, cuenta=$14, tipo_cuenta=$15, nombre_cuenta=$16
-       WHERE id=$17`,
+        cliente_id=$5, supervisor_id=$6, supervisor_id_2=$7, jornada=$8,
+        fecha_ingreso=$9, salario=$10, estado=$11, observaciones=$12, fotografia=$13,
+        banco=$14, cuenta=$15, tipo_cuenta=$16, nombre_cuenta=$17
+       WHERE id=$18`,
       [
         nombres.trim(),
         apellidos.trim(),
@@ -164,6 +173,7 @@ const actualizar = async (req, res) => {
         nit || null,
         Number(cliente_id),
         Number(supervisor_id),
+        supervisor_id_2 ? Number(supervisor_id_2) : null,
         jornada,
         fecha_ingreso,
         salario || null,

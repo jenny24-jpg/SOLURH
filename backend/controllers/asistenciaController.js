@@ -14,13 +14,16 @@ const SELECT_BASE = `
          a.hora_entrada, a.hora_salida,
          he.horas AS horas_extra, he.tipo_hora_extra,
          he.horas_diurnas, he.horas_nocturnas,
-         e.cliente_id, c.nombre AS cliente, s.nombre AS supervisor,
+         e.cliente_id, c.nombre AS cliente,
+         e.supervisor_id, e.supervisor_id_2,
+         s.nombre AS supervisor, s2.nombre AS supervisor_2,
          a.encargado_area_id, ea.nombre AS encargado_area, ea.area AS area,
          a.estado, a.observaciones, a.jornada, a.created_at
   FROM asistencias a
   LEFT JOIN empleados e ON e.id = a.empleado_id
   LEFT JOIN clientes c ON c.id = e.cliente_id
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
+  LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
   LEFT JOIN horas_extras he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
   LEFT JOIN encargados_area ea ON ea.id = a.encargado_area_id
 `;
@@ -83,7 +86,8 @@ const listar = async (req, res) => {
     conn = await getConnection();
 
     // Filtrado automático: si quien consulta es un usuario "supervisor",
-    // solo ve las asistencias de empleados bajo su propio supervisor_id.
+    // solo ve las asistencias de empleados bajo su propio supervisor_id,
+    // ya sea como supervisor principal o como segundo supervisor.
     const esSupervisor = Number(req.usuario?.rol_id) === 2;
     const supervisorIdUsuario = req.usuario?.supervisor_id;
 
@@ -95,10 +99,10 @@ const listar = async (req, res) => {
     let params;
 
     if (esSupervisor && supervisorIdUsuario) {
-      query = `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      query = `${SELECT_BASE} WHERE (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY a.fecha DESC, a.hora_entrada DESC`;
       params = [Number(supervisorIdUsuario)];
     } else if (supervisorIdQuery) {
-      query = `${SELECT_BASE} WHERE e.supervisor_id = $1 ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      query = `${SELECT_BASE} WHERE (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY a.fecha DESC, a.hora_entrada DESC`;
       params = [Number(supervisorIdQuery)];
     } else {
       query = `${SELECT_BASE} ORDER BY a.fecha DESC, a.hora_entrada DESC`;
