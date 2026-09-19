@@ -389,9 +389,21 @@
           optionSource: '/empleado',
           optionValue: 'id',
           optionLabel: 'nombres',
+          labelTemplate: ['nombres', 'apellidos'],
+          readOnlyOnEdit: true,
         },
         { name: 'fecha_baja', label: 'Fecha de baja', type: 'date', required: true, noFutureDate: true },
         { name: 'motivo_baja', label: 'Motivo', type: 'textarea', required: true, minLength: 5, maxLength: 300 },
+        {
+          name: 'estado',
+          label: 'Estado del empleado',
+          type: 'select',
+          editOnly: true,
+          options: [
+            { value: 'INACTIVO', label: 'Mantener de baja' },
+            { value: 'ACTIVO', label: 'Reactivar empleado' },
+          ],
+        },
       ],
     },
   };

@@ -1344,7 +1344,7 @@ isSector
         <div className={s.body}>
           <form id="crudForm" onSubmit={handleSubmit} noValidate className={s.formGrid}>
             {fields
-              .filter(field => !(isEdit && field.rangeRole === 'end'))
+              .filter(field => !(isEdit && field.rangeRole === 'end') && !(!isEdit && field.editOnly))
               .map(field => (
               <div
                 key={field.name}
@@ -1427,7 +1427,19 @@ field.name === 'fecha_movimiento' ? 'tour-campo-fecha-movimiento' :
                   {field.required && <span className={s.req}>*</span>}
                 </label>
 
-                {field.type === 'select' ? (
+                {field.readOnlyOnEdit && isEdit ? (
+                  <div className={s.input} style={{ display: 'flex', alignItems: 'center', background: '#f3f4f6', color: '#374151', cursor: 'not-allowed' }}>
+                    {(() => {
+                      if (Array.isArray(field.labelTemplate) && field.labelTemplate.length > 0) {
+                        const parts = field.labelTemplate
+                          .map(key => formatTemplateValue(key, getFieldValue(editItem, key)))
+                          .filter(Boolean);
+                        if (parts.length > 0) return parts.join(' · ');
+                      }
+                      return getFieldValue(editItem, field.optionLabel) ?? '—';
+                    })()}
+                  </div>
+                ) : field.type === 'select' ? (
                   <select
                     value={form[field.name]}
                     onChange={e => set(field.name, e.target.value)}
