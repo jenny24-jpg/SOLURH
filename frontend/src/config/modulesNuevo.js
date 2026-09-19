@@ -12,6 +12,8 @@
     nit: 'NIT',
     cliente_id: 'Cliente',
     supervisor_id: 'Supervisor',
+    supervisor_id_2: 'Segundo supervisor',
+    supervisor_2: 'Segundo supervisor',
     area: 'Área',
     encargado_area_id: 'Encargado de área',
     encargado_area: 'Encargado de área',
@@ -27,6 +29,8 @@
     hora_entrada: 'Hora entrada',
     hora_salida: 'Hora salida',
     horas: 'Horas',
+    horas_diurnas: 'Horas D',
+    horas_nocturnas: 'Horas N',
     motivo: 'Motivo',
     aprobado: 'Aprobado',
     tipo_documento: 'Tipo de documento',
@@ -57,7 +61,7 @@
   export const HIDDEN_COLS = new Set([
     'id', 'aprobado', 'salario',
     'created_at', 'fecha_creacion', 'correo', 'telefono', 'fecha_baja', 'motivo_baja', 'fotografia',
-    'empleado_id', 'supervisor_id', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 'encargado_area_id',
+    'empleado_id', 'supervisor_id', 'supervisor_id_2', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 'encargado_area_id',
   ]);
 
   export const DASHBOARD_QUICK_ACCESS = [
@@ -189,6 +193,14 @@
           optionValue: 'id',
           optionLabel: 'nombre',
         },
+        {
+          name: 'supervisor_id_2',
+          label: 'Segundo supervisor (opcional)',
+          type: 'remote-select',
+          optionSource: '/supervisor',
+          optionValue: 'id',
+          optionLabel: 'nombre',
+        },
         { name: 'jornada', label: 'Jornada', type: 'select', required: true, options: JORNADA_OPTIONS },
         { name: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date', required: true, noFutureDate: true },
         {
@@ -219,6 +231,11 @@
     title: 'Asistencias',
     endpoint: '/asistencia',
     icon: 'event_available',
+    hiddenCols: ['horas_extra', 'tipo_hora_extra'],
+    filters: [
+      { key: 'supervisor', allLabel: 'Todos los supervisores' },
+      { key: 'cliente', allLabel: 'Todos los clientes' },
+    ],
     fields: [
       {
         name: 'empleado_id',
@@ -247,10 +264,13 @@
       {
         name: 'encargado_area_id',
         label: 'Encargado de área',
-        type: 'remote-select',
+        type: 'remote-multiselect',
         optionSource: '/encargado-area',
         optionValue: 'id',
         labelTemplate: ['nombre', 'area'],
+        searchable: true,
+        sortLabel: true,
+        bulkLoop: true,
         dependsOn: {
           field: 'cliente_id',
           queryParam: 'cliente_id',
@@ -269,6 +289,8 @@
       title: 'Horas Extras',
       endpoint: '/horas-extra',
       icon: 'more_time',
+      requireAtLeastOne: ['horas_diurnas', 'horas_nocturnas'],
+      hiddenCols: ['horas', 'tipo_hora_extra'],
       fields: [
         {
           name: 'empleado_id',
@@ -288,14 +310,12 @@
           label: 'Horas diurnas (si aplica)',
           type: 'number',
           min: 0,
-          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Diurna' },
         },
         {
           name: 'horas_nocturnas',
           label: 'Horas nocturnas (si aplica)',
           type: 'number',
           min: 0,
-          splitGroup: { targetField: 'horas', typeField: 'tipo_hora_extra', typeValue: 'Nocturna' },
         },
         { name: 'motivo', label: 'Motivo', type: 'textarea', required: true, minLength: 5, maxLength: 300 },
         { name: 'aprobado', label: 'Aprobado', type: 'select', options: APROBADO_OPTIONS },
@@ -397,8 +417,10 @@
     {
       title: 'Registros',
       entries: [
+        { key: 'reporte-personal-cliente', label: 'Personal por cliente', icon: 'groups', adminOnly: true },
         { key: 'historial-empleado', label: 'Bajas de empleado', icon: 'history', adminOnly: true },
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },
+        { key: 'galeria-fotos', label: 'Todas las asistencias', icon: 'collections', adminOnly: true },
       ],
     },
   ];
