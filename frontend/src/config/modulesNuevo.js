@@ -434,6 +434,8 @@
         { key: 'fotos-asistencia', label: 'Fotos de asistencia', icon: 'photo_camera' },
         { key: 'galeria-fotos', label: 'Todas las asistencias', icon: 'collections', adminOnly: true },
         { key: 'historial-cambios', label: 'Historial de cambios', icon: 'history', adminOnly: true },
+        { key: 'reporte-historial-estados', label: 'Reporte historial estados', icon: 'timeline', adminOnly: true },
+        { key: 'gestion-usuarios', label: 'Gestión de usuarios', icon: 'admin_panel_settings', adminOnly: true },
       ],
     },
   ];
