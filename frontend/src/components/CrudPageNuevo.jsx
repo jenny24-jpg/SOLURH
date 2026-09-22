@@ -73,6 +73,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [pageSize, setPageSize] = useState(10);
   const [pageTourRun, setPageTourRun] = useState(false);
   const [filterValues, setFilterValues] = useState({});
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
 
   const TOUR_MODULES = [
     'supervisores',
@@ -220,6 +222,30 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     setPage(1);
   };
 
+  // ── Filtro por rango de fechas ──
+  // Se activa automáticamente cuando los registros del módulo tienen
+  // una columna "fecha" (ej. Asistencias, Horas Extras).
+  const hasFechaCol = useMemo(
+    () => data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'fecha'),
+    [data]
+  );
+
+  const handleFechaInicio = value => {
+    setFechaInicio(value);
+    setPage(1);
+  };
+
+  const handleFechaFin = value => {
+    setFechaFin(value);
+    setPage(1);
+  };
+
+  const limpiarFechas = () => {
+    setFechaInicio('');
+    setFechaFin('');
+    setPage(1);
+  };
+
   const filtered = useMemo(() => {
     let rows = data;
 
@@ -230,6 +256,17 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
       }
     });
 
+    if (hasFechaCol && (fechaInicio || fechaFin)) {
+      rows = rows.filter(r => {
+        const val = getRowValue(r, 'fecha');
+        if (!val) return false;
+        const soloFecha = String(val).slice(0, 10);
+        if (fechaInicio && soloFecha < fechaInicio) return false;
+        if (fechaFin && soloFecha > fechaFin) return false;
+        return true;
+      });
+    }
+
     if (search.trim()) {
       rows = rows.filter(r => Object.values(r).some(v =>
         String(v ?? '').toLowerCase().includes(search.toLowerCase())
@@ -237,7 +274,7 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     }
 
     return rows;
-  }, [data, search, filterDefs, filterValues]);
+  }, [data, search, filterDefs, filterValues, hasFechaCol, fechaInicio, fechaFin]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -426,6 +463,37 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                     ))}
                   </select>
                 ))}
+              </div>
+            )}
+
+            {hasFechaCol && (
+              <div className={s.filtersWrap}>
+                <input
+                  type="date"
+                  className={s.filterSelect}
+                  value={fechaInicio}
+                  onChange={e => handleFechaInicio(e.target.value)}
+                  title="Desde"
+                  max={fechaFin || undefined}
+                />
+                <input
+                  type="date"
+                  className={s.filterSelect}
+                  value={fechaFin}
+                  onChange={e => handleFechaFin(e.target.value)}
+                  title="Hasta"
+                  min={fechaInicio || undefined}
+                />
+                {(fechaInicio || fechaFin) && (
+                  <button
+                    className={s.iconBtn}
+                    onClick={limpiarFechas}
+                    title="Limpiar fechas"
+                    type="button"
+                  >
+                    <span className="material-icons">close</span>
+                  </button>
+                )}
               </div>
             )}
 
