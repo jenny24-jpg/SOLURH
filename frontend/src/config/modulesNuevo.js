@@ -14,6 +14,8 @@
     supervisor_id: 'Supervisor',
     supervisor_id_2: 'Segundo supervisor',
     supervisor_2: 'Segundo supervisor',
+    cliente_id_2: 'Segundo cliente',
+    cliente_2: 'Segundo cliente',
     area: 'Área',
     encargado_area_id: 'Encargado de área',
     encargado_area: 'Encargado de área',
@@ -61,7 +63,7 @@
   export const HIDDEN_COLS = new Set([
     'id', 'aprobado', 'salario',
     'created_at', 'fecha_creacion', 'correo', 'telefono', 'fecha_baja', 'motivo_baja', 'fotografia',
-    'empleado_id', 'supervisor_id', 'supervisor_id_2', 'cliente_id', 'asistencia_id', 'usuario_modifico','id_supervisor', 'encargado_area_id',
+    'empleado_id', 'supervisor_id', 'supervisor_id_2', 'cliente_id', 'cliente_id_2', 'asistencia_id', 'usuario_modifico','id_supervisor', 'encargado_area_id',
   ]);
 
   export const DASHBOARD_QUICK_ACCESS = [
@@ -198,6 +200,14 @@
           label: 'Segundo supervisor (opcional)',
           type: 'remote-select',
           optionSource: '/supervisor',
+          optionValue: 'id',
+          optionLabel: 'nombre',
+        },
+        {
+          name: 'cliente_id_2',
+          label: 'Cliente/área del segundo supervisor (opcional)',
+          type: 'remote-select',
+          optionSource: '/cliente',
           optionValue: 'id',
           optionLabel: 'nombre',
         },

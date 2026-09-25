@@ -11,9 +11,25 @@ function usuarioAuditoria(req) {
 // Trae también el nombre del cliente y de ambos supervisores, para no
 // tener que hacer consultas extra desde el frontend.
 const SELECT_BASE = `
-  SELECT e.*, c.nombre AS cliente, s.nombre AS supervisor, s2.nombre AS supervisor_2
+  SELECT e.*, c.nombre AS cliente, c2.nombre AS cliente_2,
+         s.nombre AS supervisor, s2.nombre AS supervisor_2
   FROM empleados e
   LEFT JOIN clientes c ON c.id = e.cliente_id
+  LEFT JOIN clientes c2 ON c2.id = e.cliente_id_2
+  LEFT JOIN supervisores s ON s.id = e.supervisor_id
+  LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
+`;
+
+// Para un supervisor específico: muestra "Cliente" y "Supervisor" como
+// la relación que corresponde A ESE supervisor (sea principal o segundo),
+// para que cada quien vea su propia área correcta, no la del otro.
+const SELECT_VISTA_SUPERVISOR = `
+  SELECT e.*,
+         CASE WHEN e.supervisor_id = $1 THEN c.nombre ELSE c2.nombre END AS cliente,
+         CASE WHEN e.supervisor_id = $1 THEN s.nombre ELSE s2.nombre END AS supervisor
+  FROM empleados e
+  LEFT JOIN clientes c ON c.id = e.cliente_id
+  LEFT JOIN clientes c2 ON c2.id = e.cliente_id_2
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
   LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
 `;
@@ -25,12 +41,13 @@ const listar = async (req, res) => {
 
     // Si quien consulta es un usuario de tipo "supervisor" (rol_id === 2),
     // solo ve los empleados que están bajo su propio supervisor_id, ya sea
-    // como supervisor principal o como segundo supervisor.
+    // como supervisor principal o como segundo supervisor — y ve el cliente
+    // que le corresponde a ÉL, no al otro supervisor.
     const esSupervisor = Number(req.usuario?.rol_id) === 2;
     const supervisorId = req.usuario?.supervisor_id;
 
     const query = esSupervisor && supervisorId
-      ? `${SELECT_BASE} WHERE e.estado = 'ACTIVO' AND (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY e.apellidos, e.nombres`
+      ? `${SELECT_VISTA_SUPERVISOR} WHERE e.estado = 'ACTIVO' AND (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY e.apellidos, e.nombres`
       : `${SELECT_BASE} WHERE e.estado = 'ACTIVO' ORDER BY e.apellidos, e.nombres`;
 
     const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
@@ -62,7 +79,7 @@ const obtenerPorId = async (req, res) => {
 const insertar = async (req, res) => {
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, supervisor_id_2, jornada,
+    cliente_id, cliente_id_2, supervisor_id, supervisor_id_2, jornada,
     fecha_ingreso, salario, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -97,8 +114,8 @@ const insertar = async (req, res) => {
     conn = await getConnection();
     const result = await conn.query(
       `INSERT INTO empleados
-        (nombres, apellidos, dpi, nit, cliente_id, supervisor_id, supervisor_id_2, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'ACTIVO',$11,$12,$13,$14,$15,$16, NOW())
+        (nombres, apellidos, dpi, nit, cliente_id, cliente_id_2, supervisor_id, supervisor_id_2, jornada, fecha_ingreso, salario, estado, observaciones, fotografia, banco, cuenta, tipo_cuenta, nombre_cuenta, fecha_creacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ACTIVO',$12,$13,$14,$15,$16,$17, NOW())
        RETURNING id`,
       [
         nombres.trim(),
@@ -106,6 +123,7 @@ const insertar = async (req, res) => {
         dpi,
         nit || null,
         Number(cliente_id),
+        cliente_id_2 ? Number(cliente_id_2) : null,
         Number(supervisor_id),
         supervisor_id_2 ? Number(supervisor_id_2) : null,
         jornada,
@@ -141,7 +159,7 @@ const actualizar = async (req, res) => {
   const { id_empleado } = req.params;
   const {
     nombres, apellidos, dpi, nit,
-    cliente_id, supervisor_id, supervisor_id_2, jornada,
+    cliente_id, cliente_id_2, supervisor_id, supervisor_id_2, jornada,
     fecha_ingreso, salario, estado, observaciones, fotografia,
     banco, cuenta, tipo_cuenta, nombre_cuenta,
   } = req.body;
@@ -162,16 +180,17 @@ const actualizar = async (req, res) => {
     await conn.query(
       `UPDATE empleados SET
         nombres=$1, apellidos=$2, dpi=$3, nit=$4,
-        cliente_id=$5, supervisor_id=$6, supervisor_id_2=$7, jornada=$8,
-        fecha_ingreso=$9, salario=$10, estado=$11, observaciones=$12, fotografia=$13,
-        banco=$14, cuenta=$15, tipo_cuenta=$16, nombre_cuenta=$17
-       WHERE id=$18`,
+        cliente_id=$5, cliente_id_2=$6, supervisor_id=$7, supervisor_id_2=$8, jornada=$9,
+        fecha_ingreso=$10, salario=$11, estado=$12, observaciones=$13, fotografia=$14,
+        banco=$15, cuenta=$16, tipo_cuenta=$17, nombre_cuenta=$18
+       WHERE id=$19`,
       [
         nombres.trim(),
         apellidos.trim(),
         dpi,
         nit || null,
         Number(cliente_id),
+        cliente_id_2 ? Number(cliente_id_2) : null,
         Number(supervisor_id),
         supervisor_id_2 ? Number(supervisor_id_2) : null,
         jornada,
