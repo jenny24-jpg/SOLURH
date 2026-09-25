@@ -210,6 +210,10 @@
           optionSource: '/cliente',
           optionValue: 'id',
           optionLabel: 'nombre',
+          dependsOn: {
+            field: 'supervisor_id_2',
+            queryParam: 'supervisor_id',
+          },
         },
         { name: 'jornada', label: 'Jornada', type: 'select', required: true, options: JORNADA_OPTIONS },
         { name: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date', required: true, noFutureDate: true },

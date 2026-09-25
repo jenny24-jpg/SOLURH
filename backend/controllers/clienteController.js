@@ -19,14 +19,31 @@ const listar = async (req, res) => {
   try {
     conn = await getConnection();
 
+    // Filtrado automático: si quien consulta es un usuario "supervisor",
+    // solo ve sus propios clientes.
     const esSupervisor = Number(req.usuario?.rol_id) === 2;
-    const supervisorId = req.usuario?.supervisor_id;
+    const supervisorIdUsuario = req.usuario?.supervisor_id;
 
-    const query = esSupervisor && supervisorId
-      ? `${SELECT_BASE} WHERE c.estado = 'ACTIVO' AND c.supervisor_id = $1 ORDER BY c.nombre`
-      : `${SELECT_BASE} WHERE c.estado = 'ACTIVO' ORDER BY c.nombre`;
+    // Si además viene un supervisor_id explícito por query (ej. desde el
+    // formulario de Empleados, al elegir el segundo supervisor), se usa
+    // para filtrar solo los clientes de ESE supervisor — salvo que quien
+    // consulta ya sea un supervisor limitado, en cuyo caso su propio filtro
+    // tiene prioridad y no puede consultar clientes de otro supervisor.
+    const supervisorIdQuery = req.query.supervisor_id;
 
-    const params = esSupervisor && supervisorId ? [Number(supervisorId)] : [];
+    let query;
+    let params;
+
+    if (esSupervisor && supervisorIdUsuario) {
+      query = `${SELECT_BASE} WHERE c.estado = 'ACTIVO' AND c.supervisor_id = $1 ORDER BY c.nombre`;
+      params = [Number(supervisorIdUsuario)];
+    } else if (supervisorIdQuery) {
+      query = `${SELECT_BASE} WHERE c.estado = 'ACTIVO' AND c.supervisor_id = $1 ORDER BY c.nombre`;
+      params = [Number(supervisorIdQuery)];
+    } else {
+      query = `${SELECT_BASE} WHERE c.estado = 'ACTIVO' ORDER BY c.nombre`;
+      params = [];
+    }
 
     const result = await conn.query(query, params);
     res.status(200).json({ ok: true, data: result.rows });
