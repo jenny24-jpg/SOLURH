@@ -25,23 +25,25 @@ const SELECT_BASE = `
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
   LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
   LEFT JOIN horas_extras he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
+    AND he.encargado_area_id IS NOT DISTINCT FROM a.encargado_area_id
   LEFT JOIN encargados_area ea ON ea.id = a.encargado_area_id
 `;
 
 // ── Helper: crea, actualiza o elimina el registro de horas extra
-// vinculado a un empleado + fecha, según el valor recibido ──────
-async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, tipo_hora_extra, usuarioId, usuarioNombre }) {
+// vinculado a un empleado + fecha + área, según el valor recibido ──
+async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, tipo_hora_extra, encargado_area_id, usuarioId, usuarioNombre }) {
   const horas = horas_extra !== undefined && horas_extra !== null && horas_extra !== ''
     ? Number(horas_extra)
     : 0;
 
+  const areaId = encargado_area_id || null;
   const tipo = tipo_hora_extra || 'Diurna';
   const horasDiurnas = tipo === 'Nocturna' ? 0 : horas;
   const horasNocturnas = tipo === 'Nocturna' ? horas : 0;
 
   const existente = await conn.query(
-    `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2`,
-    [Number(empleado_id), fecha]
+    `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2 AND encargado_area_id IS NOT DISTINCT FROM $3`,
+    [Number(empleado_id), fecha, areaId]
   );
 
   if (horas > 0) {
@@ -52,9 +54,9 @@ async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, ti
       );
     } else {
       await conn.query(
-        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra, horas_diurnas, horas_nocturnas)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false, tipo, horasDiurnas, horasNocturnas]
+        `INSERT INTO horas_extras (empleado_id, fecha, horas, motivo, aprobado, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [Number(empleado_id), fecha, horas, 'Registrado desde asistencia', false, tipo, horasDiurnas, horasNocturnas, areaId]
       );
     }
 
@@ -190,6 +192,7 @@ const insertar = async (req, res) => {
       fecha,
       horas_extra,
       tipo_hora_extra,
+      encargado_area_id,
       ...usuarioAuditoria(req),
     });
 
@@ -271,6 +274,7 @@ const actualizar = async (req, res) => {
         fecha,
         horas_extra,
         tipo_hora_extra,
+        encargado_area_id,
         ...usuarioAuditoria(req),
       });
     }
