@@ -50,7 +50,8 @@ function get(obj, ...keys) {
 }
 
 export default function DashboardNuevo({ onSelect }) {
-  const { displayName, rolLabel } = useAuth();
+  const { displayName, rolLabel, isAdmin, isSoloLectura } = useAuth();
+  const vePanelesAdmin = isAdmin || isSoloLectura;
 
   const [empleados, setEmpleados] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
@@ -102,6 +103,20 @@ export default function DashboardNuevo({ onSelect }) {
     fetchAll();
     return () => { mounted = false; };
   }, []);
+
+  // ── Secciones/entradas visibles según el rol (oculta lo admin-only
+  // a supervisores y demás roles, igual que hace el menú lateral) ──
+  const visibleNavSections = useMemo(
+    () =>
+      NAV_SECTIONS
+        .filter(sec => !sec.adminOnly || vePanelesAdmin)
+        .map(sec => ({
+          ...sec,
+          entries: sec.entries.filter(entry => !entry.adminOnly || vePanelesAdmin),
+        }))
+        .filter(sec => sec.entries.length > 0),
+    [vePanelesAdmin]
+  );
 
   // ── Colaboradores por Supervisor ──────────────────────────
   const empleadosPorSupervisor = useMemo(() => {
@@ -190,20 +205,20 @@ export default function DashboardNuevo({ onSelect }) {
 
   const maxEmpCliente = empleadosPorCliente.length ? empleadosPorCliente[0].cnt : 1;
 
-  // ── Módulos de acceso rápido ───────────────────────────────
+  // ── Módulos de acceso rápido (ya filtrados por rol) ────────
   const quickModules = useMemo(() => {
-    return NAV_SECTIONS.flatMap((section) => section.entries).filter((entry) =>
+    return visibleNavSections.flatMap((section) => section.entries).filter((entry) =>
       QUICK_KEYS.includes(entry.key)
     );
-  }, []);
+  }, [visibleNavSections]);
 
-  // ── Secciones agrupadas ────────────────────────────────────
+  // ── Secciones agrupadas (ya filtradas por rol) ─────────────
   const groupedSections = useMemo(() => {
-    return NAV_SECTIONS.map((section) => ({
+    return visibleNavSections.map((section) => ({
       ...section,
       entries: section.entries.filter((entry) => !QUICK_KEYS.includes(entry.key)),
     })).filter((section) => section.entries.length > 0);
-  }, []);
+  }, [visibleNavSections]);
 
   return (
     <>
@@ -463,13 +478,7 @@ export default function DashboardNuevo({ onSelect }) {
           </p>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5,1fr)',
-            gap: 8,
-          }}
-        >
+        <div className={s.resumenGrid}>
           {[
             { label: 'Empleados', val: loading ? '…' : empleados.length, color: '#2563EB', bg: '#DBEAFE', icon: 'groups' },
             { label: 'Clientes', val: loading ? '…' : clientes.length, color: '#EA580C', bg: '#FFEDD5', icon: 'business' },
@@ -477,7 +486,7 @@ export default function DashboardNuevo({ onSelect }) {
             { label: 'Asistencias', val: loading ? '…' : asistenciasActivas.length, color: '#16A34A', bg: '#DCFCE7', icon: 'fact_check' },
             { label: 'Horas Extras', val: loading ? '…' : horasExtrasActivas.length, color: '#DC2626', bg: '#FEE2E2', icon: 'schedule' },
           ].map(({ label, val, color, bg, icon }) => (
-            <div key={label} style={{ background: bg, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
+            <div key={label} className={s.resumenCard} style={{ background: bg }}>
               <span className="material-icons" style={{ color, fontSize: 26, marginBottom: 4 }}>{icon}</span>
               <div style={{ fontSize: 18, fontWeight: 700, color }}>{val}</div>
               <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{label}</div>
@@ -485,12 +494,8 @@ export default function DashboardNuevo({ onSelect }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+        <div className={s.footerNote}>
           <p style={{ margin: 0, fontWeight: 600, color: '#374151' }}>Panel de Gestión de Colaboradores</p>
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#6B7280' }}>
-            
-            
-          </p>
         </div>
       </section>
     </>
@@ -500,10 +505,12 @@ export default function DashboardNuevo({ onSelect }) {
 function ModCard({ label, icon, onClick, compact = false }) {
   return (
     <button type="button" className={`${s.modCard} ${compact ? s.modCardCompact : ''}`} onClick={onClick}>
-      {icon}
-      <div>
-        <h4>{label}</h4>
-        {!compact && <span>Abrir módulo</span>}
+      <div className={s.modIcon}>
+        <span className="material-icons">{icon}</span>
+      </div>
+      <div className={s.modText}>
+        <h4 className={s.modLabel}>{label}</h4>
+        {!compact && <span className={s.modHint}>Abrir módulo</span>}
       </div>
       <span className={`material-icons ${s.modArrow}`}>arrow_forward</span>
     </button>

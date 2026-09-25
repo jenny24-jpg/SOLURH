@@ -222,6 +222,12 @@
   align-items: stretch;
 }
 
+/* Si la última tarjeta queda sola en su fila (número impar de secciones),
+   que ocupe todo el ancho en vez de quedarse a la mitad y verse vacía. */
+.sectionsGrid > .groupCard:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .groupCard {
   animation: fadeUpGrid .5s ease .4s both;
 }
@@ -251,6 +257,12 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+/* Cuando la tarjeta del grupo ocupa todo el ancho (ver regla arriba),
+   la grilla interna de módulos aprovecha ese espacio con más columnas. */
+.sectionsGrid > .groupCard:last-child:nth-child(odd) .moduleGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .modCard {
@@ -322,6 +334,27 @@
   color: var(--verde-profundo);
 }
 
+/* ── Resumen general (cards de conteo) ──────────────── */
+.resumenGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.resumenCard {
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.footerNote {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+}
+
 @media (max-width: 1100px) {
   .quickGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -329,6 +362,10 @@
 
   .sectionsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .sectionsGrid > .groupCard:last-child:nth-child(odd) .moduleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -351,6 +388,10 @@
   .quickGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .resumenGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -366,6 +407,14 @@
   .quickGrid,
   .moduleGrid {
     grid-template-columns: 1fr;
+  }
+
+  .sectionsGrid > .groupCard:last-child:nth-child(odd) .moduleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .resumenGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .sectionBlock,
@@ -715,3 +764,7 @@
 :global([data-theme="dark"]) .alertItem span { color: #94a3b8; }
 :global([data-theme="dark"]) .alertItem strong { color: #e2e8f0; }
 :global([data-theme="dark"]) .alertItem p { color: #64748b; }
+:global([data-theme="dark"]) .footerNote {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.07);
+}
