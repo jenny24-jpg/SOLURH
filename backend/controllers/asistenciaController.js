@@ -262,10 +262,17 @@ const actualizar = async (req, res) => {
   try {
     conn = await getConnection();
 
+    // Se lee cómo estaba la asistencia ANTES de editarla (empleado, fecha y
+    // área), para poder mover sus horas extra si cambia la fecha o el área.
+    const previa = await conn.query(
+      `SELECT empleado_id, fecha::text AS fecha, encargado_area_id
+         FROM asistencias WHERE id = $1`,
+      [Number(id_asistencia)]
+    );
+
     let empleadoIdFinal = empleado_id;
     if (!empleadoIdFinal) {
-      const actual = await conn.query(`SELECT empleado_id FROM asistencias WHERE id = $1`, [Number(id_asistencia)]);
-      empleadoIdFinal = actual.rows[0]?.empleado_id;
+      empleadoIdFinal = previa.rows[0]?.empleado_id;
     }
 
     await conn.query(
@@ -280,6 +287,58 @@ const actualizar = async (req, res) => {
       descripcion: `Asistencia ${id_asistencia} actualizada`,
       ...usuarioAuditoria(req),
     });
+
+    // Si cambió la fecha o el área, la hora extra automática que tenía la
+    // asistencia queda con la clave vieja. Se mueve a la nueva (conservando
+    // si estaba aprobada); si ya existía una en la nueva, se borra la vieja.
+    // Así la sincronización de abajo actualiza ese mismo registro en vez de
+    // crear uno nuevo y duplicar las horas.
+    if (previa.rows.length > 0) {
+      const norm = v => (v === null || v === undefined || v === '' ? null : Number(v));
+      const viejoEmp = previa.rows[0].empleado_id;
+      const viejaFecha = previa.rows[0].fecha;
+      const viejaArea = norm(previa.rows[0].encargado_area_id);
+      const nuevaFecha = String(fecha).slice(0, 10);
+      const nuevaArea = norm(encargado_area_id);
+
+      if (viejaFecha !== nuevaFecha || viejaArea !== nuevaArea) {
+        const otra = await conn.query(
+          `SELECT 1 FROM asistencias
+            WHERE empleado_id = $1 AND fecha = $2
+              AND encargado_area_id IS NOT DISTINCT FROM $3
+            LIMIT 1`,
+          [viejoEmp, viejaFecha, viejaArea]
+        );
+
+        if (otra.rows.length === 0) {
+          const destino = await conn.query(
+            `SELECT 1 FROM horas_extras
+              WHERE empleado_id = $1 AND fecha = $2
+                AND encargado_area_id IS NOT DISTINCT FROM $3
+              LIMIT 1`,
+            [viejoEmp, nuevaFecha, nuevaArea]
+          );
+
+          if (destino.rows.length === 0) {
+            await conn.query(
+              `UPDATE horas_extras SET fecha = $1, encargado_area_id = $2
+                WHERE empleado_id = $3 AND fecha = $4
+                  AND encargado_area_id IS NOT DISTINCT FROM $5
+                  AND motivo = 'Registrado desde asistencia'`,
+              [nuevaFecha, nuevaArea, viejoEmp, viejaFecha, viejaArea]
+            );
+          } else {
+            await conn.query(
+              `DELETE FROM horas_extras
+                WHERE empleado_id = $1 AND fecha = $2
+                  AND encargado_area_id IS NOT DISTINCT FROM $3
+                  AND motivo = 'Registrado desde asistencia'`,
+              [viejoEmp, viejaFecha, viejaArea]
+            );
+          }
+        }
+      }
+    }
 
     if (empleadoIdFinal) {
       await sincronizarHorasExtra(conn, {
@@ -307,6 +366,21 @@ const eliminar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
+
+    // Antes de borrar, se lee a qué empleado / fecha / área pertenece, para
+    // poder limpiar también las horas extra que se generaron desde esta asistencia.
+    const actual = await conn.query(
+      `SELECT empleado_id, fecha::text AS fecha, encargado_area_id
+         FROM asistencias WHERE id = $1`,
+      [Number(id_asistencia)]
+    );
+
+    if (actual.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Asistencia no encontrada.' });
+    }
+
+    const { empleado_id, fecha, encargado_area_id } = actual.rows[0];
+
     await conn.query(`DELETE FROM asistencias WHERE id = $1`, [Number(id_asistencia)]);
 
     await registrarAuditoria(conn, {
@@ -316,6 +390,38 @@ const eliminar = async (req, res) => {
       descripcion: `Asistencia ${id_asistencia} eliminada`,
       ...usuarioAuditoria(req),
     });
+
+    // Si ya no queda otra asistencia del mismo empleado, fecha y área, se
+    // elimina el registro de horas extra que se creó automáticamente desde
+    // ella. Las horas extra ingresadas a mano (otro motivo) no se tocan.
+    const otra = await conn.query(
+      `SELECT 1 FROM asistencias
+        WHERE empleado_id = $1 AND fecha = $2
+          AND encargado_area_id IS NOT DISTINCT FROM $3
+        LIMIT 1`,
+      [empleado_id, fecha, encargado_area_id]
+    );
+
+    if (otra.rows.length === 0) {
+      const horasBorradas = await conn.query(
+        `DELETE FROM horas_extras
+          WHERE empleado_id = $1 AND fecha = $2
+            AND encargado_area_id IS NOT DISTINCT FROM $3
+            AND motivo = 'Registrado desde asistencia'
+        RETURNING id`,
+        [empleado_id, fecha, encargado_area_id]
+      );
+
+      for (const fila of horasBorradas.rows) {
+        await registrarAuditoria(conn, {
+          tabla: 'HORAS_EXTRAS',
+          operacion: 'DELETE',
+          idRegistro: fila.id,
+          descripcion: `Horas extra eliminadas junto con la asistencia ${id_asistencia} (empleado ${empleado_id}, ${fecha})`,
+          ...usuarioAuditoria(req),
+        });
+      }
+    }
 
     res.status(200).json({ ok: true, mensaje: 'Asistencia eliminada correctamente.' });
   } catch (err) {
