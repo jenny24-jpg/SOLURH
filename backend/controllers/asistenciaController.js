@@ -31,15 +31,26 @@ const SELECT_BASE = `
 
 // ── Helper: crea, actualiza o elimina el registro de horas extra
 // vinculado a un empleado + fecha + área, según el valor recibido ──
-async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, tipo_hora_extra, encargado_area_id, usuarioId, usuarioNombre }) {
-  const horas = horas_extra !== undefined && horas_extra !== null && horas_extra !== ''
-    ? Number(horas_extra)
-    : 0;
+async function sincronizarHorasExtra(conn, { empleado_id, fecha, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id, usuarioId, usuarioNombre }) {
+  const num = v => (v !== undefined && v !== null && v !== '' ? Number(v) || 0 : 0);
 
+  let horasDiurnas = num(horas_diurnas);
+  let horasNocturnas = num(horas_nocturnas);
+
+  // Compatibilidad con el formato anterior (un solo campo "horas_extra" + tipo):
+  // solo se usa si NO llegaron los campos separados de diurnas/nocturnas.
+  if (horas_diurnas === undefined && horas_nocturnas === undefined) {
+    const legacy = num(horas_extra);
+    if (legacy > 0) {
+      if (tipo_hora_extra === 'Nocturna') horasNocturnas = legacy;
+      else horasDiurnas = legacy;
+    }
+  }
+
+  const horas = horasDiurnas + horasNocturnas;
   const areaId = encargado_area_id || null;
-  const tipo = tipo_hora_extra || 'Diurna';
-  const horasDiurnas = tipo === 'Nocturna' ? 0 : horas;
-  const horasNocturnas = tipo === 'Nocturna' ? horas : 0;
+  // tipo_hora_extra se conserva solo como campo legado (reportes antiguos)
+  const tipo = horasNocturnas > 0 && horasDiurnas === 0 ? 'Nocturna' : 'Diurna';
 
   const existente = await conn.query(
     `SELECT id FROM horas_extras WHERE empleado_id = $1 AND fecha = $2 AND encargado_area_id IS NOT DISTINCT FROM $3`,
@@ -153,7 +164,7 @@ const listarPorEmpleado = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra, tipo_hora_extra, encargado_area_id } = req.body;
+  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id } = req.body;
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -192,6 +203,8 @@ const insertar = async (req, res) => {
       fecha,
       horas_extra,
       tipo_hora_extra,
+      horas_diurnas,
+      horas_nocturnas,
       encargado_area_id,
       ...usuarioAuditoria(req),
     });
@@ -239,7 +252,7 @@ const marcarSalida = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_asistencia } = req.params;
-  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra, tipo_hora_extra, encargado_area_id } = req.body;
+  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id } = req.body;
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
@@ -274,6 +287,8 @@ const actualizar = async (req, res) => {
         fecha,
         horas_extra,
         tipo_hora_extra,
+        horas_diurnas,
+        horas_nocturnas,
         encargado_area_id,
         ...usuarioAuditoria(req),
       });
