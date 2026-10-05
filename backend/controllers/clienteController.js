@@ -79,9 +79,14 @@ const insertar = async (req, res) => {
   try {
     conn = await getConnection();
 
-    const existe = await conn.query('SELECT id FROM clientes WHERE nombre = $1', [nombre.trim()]);
+    // Solo los clientes ACTIVOS reservan su nombre (un cliente eliminado puede
+    // volver a crearse), y no se distingue entre mayúsculas y minúsculas.
+    const existe = await conn.query(
+      `SELECT nombre FROM clientes WHERE LOWER(nombre) = LOWER($1) AND estado = 'ACTIVO'`,
+      [nombre.trim()]
+    );
     if (existe.rows.length > 0) {
-      return res.status(409).json({ ok: false, mensaje: 'Ese nombre de cliente ya existe.' });
+      return res.status(409).json({ ok: false, mensaje: `Ya existe un cliente llamado "${existe.rows[0].nombre}".` });
     }
 
     const result = await conn.query(
@@ -99,6 +104,7 @@ const insertar = async (req, res) => {
 
     res.status(201).json({ ok: true, mensaje: 'Cliente creado correctamente.', data: { id: result.rows[0].id } });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe un cliente con ese nombre.' });
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
     await closeConnection(conn);
@@ -115,6 +121,16 @@ const actualizar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
+
+    const existe = await conn.query(
+      `SELECT nombre FROM clientes
+        WHERE LOWER(nombre) = LOWER($1) AND estado = 'ACTIVO' AND id <> $2`,
+      [nombre.trim(), Number(id_cliente)]
+    );
+    if (existe.rows.length > 0) {
+      return res.status(409).json({ ok: false, mensaje: `Ya existe un cliente llamado "${existe.rows[0].nombre}".` });
+    }
+
     await conn.query(
       `UPDATE clientes SET nombre=$1, estado=$2, supervisor_id=$3 WHERE id=$4`,
       [nombre.trim(), estado || 'ACTIVO', supervisor_id || null, Number(id_cliente)]
@@ -130,6 +146,7 @@ const actualizar = async (req, res) => {
 
     res.status(200).json({ ok: true, mensaje: 'Cliente actualizado correctamente.' });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe un cliente con ese nombre.' });
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
     await closeConnection(conn);
