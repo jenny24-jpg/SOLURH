@@ -88,6 +88,31 @@ function leerHorasSplit(body) {
   return { diurnas, nocturnas, total, tipoLegacy };
 }
 
+// Busca el área de la asistencia de esa persona en esa fecha, para que las
+// horas extra que se cargan desde este módulo queden ligadas a la misma área
+// y se vean en la fila de Asistencias.
+//   - un solo área ese día      -> se usa esa área
+//   - ninguna área / sin asist. -> queda sin área (se ve en asistencias sin área)
+//   - varias áreas el mismo día -> ambigua: no se puede saber a cuál pertenecen
+async function resolverArea(conn, empleadoId, fecha) {
+  const r = await conn.query(
+    `SELECT DISTINCT encargado_area_id
+       FROM asistencias
+      WHERE empleado_id = $1 AND fecha = $2 AND encargado_area_id IS NOT NULL`,
+    [Number(empleadoId), fecha]
+  );
+  if (r.rows.length === 1) return { areaId: r.rows[0].encargado_area_id, ambigua: false };
+  if (r.rows.length > 1) return { areaId: null, ambigua: true };
+  return { areaId: null, ambigua: false };
+}
+
+const MSG_AREA_AMBIGUA =
+  'Esa persona tiene asistencia en más de un área ese día, y desde aquí no se puede saber a cuál pertenecen las horas. ' +
+  'Regístralas desde Asistencias, eligiendo el área, para que cada área quede con sus propias horas.';
+
+const MSG_DUPLICADA =
+  'Ya existe un registro de horas extra para esa persona en esa fecha y área. Edítalo en lugar de crear otro.';
+
 const insertar = async (req, res) => {
   const { empleado_id, fecha, motivo } = req.body;
   const { diurnas, nocturnas, total, tipoLegacy } = leerHorasSplit(req.body);
@@ -105,10 +130,16 @@ const insertar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
+
+    const { areaId, ambigua } = await resolverArea(conn, empleado_id, fecha);
+    if (ambigua) {
+      return res.status(400).json({ ok: false, mensaje: MSG_AREA_AMBIGUA });
+    }
+
     const result = await conn.query(
-      `INSERT INTO horas_extras (empleado_id, fecha, horas, horas_diurnas, horas_nocturnas, motivo, aprobado, tipo_hora_extra, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,false,$7, NOW()) RETURNING id`,
-      [Number(empleado_id), fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy]
+      `INSERT INTO horas_extras (empleado_id, fecha, horas, horas_diurnas, horas_nocturnas, motivo, aprobado, tipo_hora_extra, encargado_area_id, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,false,$7,$8, NOW()) RETURNING id`,
+      [Number(empleado_id), fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy, areaId]
     );
 
     await registrarAuditoria(conn, {
@@ -121,6 +152,7 @@ const insertar = async (req, res) => {
 
     res.status(201).json({ ok: true, mensaje: 'Horas extra registradas correctamente.' });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: MSG_DUPLICADA });
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
     await closeConnection(conn);
@@ -172,9 +204,43 @@ const actualizar = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
+
+    const actual = await conn.query(
+      `SELECT empleado_id, fecha::text AS fecha, encargado_area_id
+         FROM horas_extras WHERE id = $1`,
+      [Number(id_hora_extra)]
+    );
+    if (actual.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Registro no encontrado.' });
+    }
+
+    const nuevaFecha = String(fecha).slice(0, 10);
+    const cambioFecha = nuevaFecha !== actual.rows[0].fecha;
+    let areaFinal = actual.rows[0].encargado_area_id;
+
+    if (cambioFecha || areaFinal === null) {
+      const { areaId, ambigua } = await resolverArea(conn, actual.rows[0].empleado_id, nuevaFecha);
+
+      if (cambioFecha) {
+        // Cambió la fecha: el área debe corresponder a la asistencia de la fecha nueva.
+        if (ambigua) return res.status(400).json({ ok: false, mensaje: MSG_AREA_AMBIGUA });
+        areaFinal = areaId;
+      } else if (areaId !== null) {
+        // Registro sin área (anterior a este cambio): se liga al área de su
+        // asistencia, siempre que no choque con otro registro de esa área.
+        const choque = await conn.query(
+          `SELECT 1 FROM horas_extras
+            WHERE empleado_id = $1 AND fecha = $2 AND encargado_area_id = $3 AND id <> $4
+            LIMIT 1`,
+          [actual.rows[0].empleado_id, nuevaFecha, areaId, Number(id_hora_extra)]
+        );
+        if (choque.rows.length === 0) areaFinal = areaId;
+      }
+    }
+
     await conn.query(
-      `UPDATE horas_extras SET fecha=$1, horas=$2, horas_diurnas=$3, horas_nocturnas=$4, motivo=$5, tipo_hora_extra=$6 WHERE id=$7`,
-      [fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy, Number(id_hora_extra)]
+      `UPDATE horas_extras SET fecha=$1, horas=$2, horas_diurnas=$3, horas_nocturnas=$4, motivo=$5, tipo_hora_extra=$6, encargado_area_id=$7 WHERE id=$8`,
+      [fecha, total, diurnas, nocturnas, motivo || null, tipoLegacy, areaFinal, Number(id_hora_extra)]
     );
 
     await registrarAuditoria(conn, {
@@ -187,6 +253,7 @@ const actualizar = async (req, res) => {
 
     res.status(200).json({ ok: true, mensaje: 'Registro actualizado correctamente.' });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: MSG_DUPLICADA });
     res.status(500).json({ ok: false, mensaje: err.message });
   } finally {
     await closeConnection(conn);
