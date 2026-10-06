@@ -8,6 +8,18 @@ import { API, apiFetch, useAuth } from '../context/AuthContext';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
+// Módulos que permiten seleccionar varios registros y eliminarlos a la vez.
+// Cada uno necesita la ruta POST {endpoint}/eliminar-varios en el backend.
+const BULK_DELETE_MODULES = new Set(['asistencias']);
+
+const checkboxStyle = {
+  width: 18,
+  height: 18,
+  cursor: 'pointer',
+  accentColor: '#14168b',
+  verticalAlign: 'middle',
+};
+
 // ── Skeleton de carga (filas fantasma animadas) ──────────────
 // Usa las clases definidas en src/mejoras.css
 function SkeletonTable({ columns = 5, rows = 6 }) {
@@ -75,6 +87,12 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   const [filterValues, setFilterValues] = useState({});
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+
+  // ── Selección múltiple para eliminar varios registros ──
+  const [selected, setSelected] = useState(() => new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const bulkEnabled = BULK_DELETE_MODULES.has(moduleKey) && !isSoloLectura;
 
   const TOUR_MODULES = [
     'supervisores',
@@ -144,6 +162,12 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
   useEffect(() => {
     setPage(1);
   }, [search]);
+
+  // Al cambiar de módulo o recargar los datos se limpia la selección,
+  // para no quedarse con registros que ya no existen.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [moduleKey, data]);
 
   const moduleHiddenCols = useMemo(() => new Set(cfg.hiddenCols || []), [cfg.hiddenCols]);
 
@@ -250,9 +274,9 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
     let rows = data;
 
     filterDefs.forEach(def => {
-      const selected = filterValues[def.key];
-      if (selected) {
-        rows = rows.filter(r => String(getRowValue(r, def.key) ?? '') === selected);
+      const selectedFilter = filterValues[def.key];
+      if (selectedFilter) {
+        rows = rows.filter(r => String(getRowValue(r, def.key) ?? '') === selectedFilter);
       }
     });
 
@@ -293,6 +317,74 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     return range;
   }, [page, totalPages]);
+
+  // ── Selección múltiple ──
+  // Solo cuentan los registros seleccionados que siguen visibles con los
+  // filtros actuales: nunca se borra algo que no estás viendo.
+  const filteredIds = bulkEnabled
+    ? filtered.map(pkVal).filter(id => id !== null && id !== undefined)
+    : [];
+  const pageIds = bulkEnabled
+    ? paginated.map(pkVal).filter(id => id !== null && id !== undefined)
+    : [];
+  const selectedVisibleIds = filteredIds.filter(id => selected.has(id));
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id));
+  const somePageSelected = pageIds.some(id => selected.has(id));
+
+  const toggleRow = id => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const togglePage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) pageIds.forEach(id => next.delete(id));
+      else pageIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => setSelected(new Set(filteredIds));
+  const clearSelection = () => setSelected(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = selectedVisibleIds;
+    if (ids.length === 0) return;
+
+    setBulkDeleting(true);
+    try {
+      const res = await apiFetch(`${API}${endpoint}/eliminar-varios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok && (json.ok === true || json.success === true)) {
+        setConfirmBulk(false);
+        setSelected(new Set());
+
+        if (json.data?.noEncontradas > 0) {
+          alert(json.mensaje);
+        }
+
+        fetchData();
+        window.dispatchEvent(new Event('plagas-actualizadas'));
+        window.dispatchEvent(new Event('arbol_actualizado'));
+      } else {
+        alert(json.mensaje ?? json.message ?? 'Error al eliminar los registros');
+      }
+    } catch {
+      alert('Error de conexión al eliminar');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const handleDelete = async row => {
     const id = pkVal(row);
@@ -343,6 +435,8 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
 
     return <span className={cls}>{v}</span>;
   };
+
+  const nSel = selectedVisibleIds.length;
 
   return (
     <div className={s.root}>
@@ -553,32 +647,137 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
             </div>
           ) : (
             <>
+              {bulkEnabled && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 14px',
+                    marginBottom: 12,
+                    borderRadius: 14,
+                    background: nSel > 0 ? 'rgba(185, 28, 28, 0.08)' : 'rgba(20, 22, 139, 0.05)',
+                    border: `1px solid ${nSel > 0 ? 'rgba(185, 28, 28, 0.25)' : 'rgba(20, 22, 139, 0.12)'}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: 20, opacity: 0.7 }}>
+                    {nSel > 0 ? 'check_box' : 'check_box_outline_blank'}
+                  </span>
+
+                  {nSel === 0 ? (
+                    <span style={{ opacity: 0.8 }}>
+                      Marca las casillas para eliminar varios registros a la vez.
+                    </span>
+                  ) : (
+                    <span>
+                      <strong>{nSel}</strong> {nSel === 1 ? 'registro seleccionado' : 'registros seleccionados'}
+                    </span>
+                  )}
+
+                  <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {nSel < filteredIds.length && (
+                      <button className={s.iconBtn} onClick={selectAllFiltered} type="button">
+                        <span className="material-icons">select_all</span>
+                        Seleccionar los {filteredIds.length} visibles
+                      </button>
+                    )}
+
+                    {nSel > 0 && (
+                      <>
+                        <button className={s.iconBtn} onClick={clearSelection} type="button">
+                          <span className="material-icons">close</span>
+                          Quitar selección
+                        </button>
+
+                        <button
+                          onClick={() => setConfirmBulk(true)}
+                          type="button"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '8px 14px',
+                            borderRadius: 10,
+                            border: 'none',
+                            background: '#b91c1c',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
+                          Eliminar seleccionados ({nSel})
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className={`${s.tableWrap} tour-tabla`}>
                 <table className={s.table}>
                   <thead>
                     <tr>
+                      {bulkEnabled && (
+                        <th style={{ width: 44, textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            style={checkboxStyle}
+                            checked={allPageSelected}
+                            ref={el => {
+                              if (el) el.indeterminate = somePageSelected && !allPageSelected;
+                            }}
+                            onChange={togglePage}
+                            title="Seleccionar todos los de esta página"
+                          />
+                        </th>
+                      )}
                       {cols.map(c => <th key={c}>{colLabel(c)}</th>)}
                       {!isSoloLectura && <th className={s.actionsCol}>Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {paginated.map((row, i) => (
-                      <tr key={i} className={i % 2 === 0 ? s.rowE : s.rowO}>
-                        {cols.map(c => (
-                          <td key={c}>
-                            {renderCell(c, virtualColsMap[c] ? virtualColsMap[c].compute(row) : row[c])}
-                          </td>
-                        ))}
-                        {!isSoloLectura && (
-                          <td>
-                            <div className={s.actions}>
-                              <ABtn icon="edit" tip="Editar" variant="edit" onClick={() => setModal(row)} />
-                              <ABtn icon="delete_outline" tip="Eliminar" variant="delete" onClick={() => setConfirmRow(row)} />
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
+                    {paginated.map((row, i) => {
+                      const rowId = bulkEnabled ? pkVal(row) : null;
+                      const isSelected = bulkEnabled && rowId !== null && selected.has(rowId);
+
+                      return (
+                        <tr
+                          key={i}
+                          className={i % 2 === 0 ? s.rowE : s.rowO}
+                          style={isSelected ? { background: 'rgba(185, 28, 28, 0.07)' } : undefined}
+                        >
+                          {bulkEnabled && (
+                            <td style={{ textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                style={checkboxStyle}
+                                checked={isSelected}
+                                disabled={rowId === null || rowId === undefined}
+                                onChange={() => toggleRow(rowId)}
+                                title="Seleccionar registro"
+                              />
+                            </td>
+                          )}
+                          {cols.map(c => (
+                            <td key={c}>
+                              {renderCell(c, virtualColsMap[c] ? virtualColsMap[c].compute(row) : row[c])}
+                            </td>
+                          ))}
+                          {!isSoloLectura && (
+                            <td>
+                              <div className={s.actions}>
+                                <ABtn icon="edit" tip="Editar" variant="edit" onClick={() => setModal(row)} />
+                                <ABtn icon="delete_outline" tip="Eliminar" variant="delete" onClick={() => setConfirmRow(row)} />
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -689,6 +888,48 @@ export default function CrudPageNuevo({ moduleKey, onBack }) {
                   <span className="material-icons">delete</span>
                 </span>
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmBulk && (
+        <div className={s.overlay} onClick={() => { if (!bulkDeleting) setConfirmBulk(false); }}>
+          <div className={s.confirmModal} onClick={e => e.stopPropagation()}>
+            <div className={s.confirmIcon}>
+              <span className="material-icons">delete_forever</span>
+            </div>
+            <h3 className={s.confirmTitle}>
+              ¿Eliminar {nSel} {nSel === 1 ? 'registro' : 'registros'}?
+            </h3>
+            <p className={s.confirmMsg}>
+              {moduleKey === 'asistencias'
+                ? 'También se eliminarán las horas extra que se registraron desde estas asistencias. Esta acción no se puede deshacer.'
+                : 'Esta acción no se puede deshacer.'}
+            </p>
+            <div className={s.confirmBtns}>
+              <button
+                className={s.confirmCancel}
+                onClick={() => setConfirmBulk(false)}
+                disabled={bulkDeleting}
+                type="button"
+              >
+                <span className={s.iconCircle}>
+                  <span className="material-icons">close</span>
+                </span>
+                Cancelar
+              </button>
+              <button
+                className={s.confirmDelete}
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                type="button"
+              >
+                <span className={s.iconCircle}>
+                  <span className="material-icons">{bulkDeleting ? 'hourglass_top' : 'delete'}</span>
+                </span>
+                {bulkDeleting ? 'Eliminando...' : `Eliminar ${nSel}`}
               </button>
             </div>
           </div>
