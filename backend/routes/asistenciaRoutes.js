@@ -7,6 +7,7 @@ router.get('/', verificarToken, asistenciaController.listar);
 router.get('/empleado/:empleado_id', verificarToken, asistenciaController.listarPorEmpleado);
 router.get('/:id_asistencia', verificarToken, asistenciaController.obtenerPorId);
 router.post('/', verificarToken, asistenciaController.insertar);
+router.post('/eliminar-varios', verificarToken, asistenciaController.eliminarVarios);
 router.put('/:id_asistencia', verificarToken, asistenciaController.actualizar);
 router.put('/:id_asistencia/salida', verificarToken, asistenciaController.marcarSalida);
 router.delete('/:id_asistencia', verificarToken, asistenciaController.eliminar);
