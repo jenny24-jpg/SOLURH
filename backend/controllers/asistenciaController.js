@@ -112,7 +112,13 @@ const listar = async (req, res) => {
     let params;
 
     if (esSupervisor && supervisorIdUsuario) {
-      query = `${SELECT_BASE} WHERE (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY a.fecha DESC, a.hora_entrada DESC`;
+      // Un supervisor ve solo las asistencias de SUS clientes: si la asistencia
+      // tiene cliente propio, ese cliente debe pertenecerle; si es una asistencia
+      // antigua (sin cliente propio), se usa la regla anterior por empleado.
+      query = `${SELECT_BASE} WHERE (
+        (a.cliente_id IS NOT NULL AND c.supervisor_id = $1)
+        OR (a.cliente_id IS NULL AND (e.supervisor_id = $1 OR e.supervisor_id_2 = $1))
+      ) ORDER BY a.fecha DESC, a.hora_entrada DESC`;
       params = [Number(supervisorIdUsuario)];
     } else if (supervisorIdQuery) {
       query = `${SELECT_BASE} WHERE (e.supervisor_id = $1 OR e.supervisor_id_2 = $1) ORDER BY a.fecha DESC, a.hora_entrada DESC`;
@@ -476,7 +482,11 @@ const eliminarVarios = async (req, res) => {
           USING empleados e
           WHERE e.id = a.empleado_id
             AND a.id = ANY($1::int[])
-            AND (e.supervisor_id = $2 OR e.supervisor_id_2 = $2)
+            AND (
+              (a.cliente_id IS NOT NULL AND EXISTS (
+                SELECT 1 FROM clientes cl WHERE cl.id = a.cliente_id AND cl.supervisor_id = $2))
+              OR (a.cliente_id IS NULL AND (e.supervisor_id = $2 OR e.supervisor_id_2 = $2))
+            )
         RETURNING a.id, a.empleado_id, a.fecha::text AS fecha, a.encargado_area_id`,
         [idsLimpios, Number(supervisorIdUsuario)]
       );
