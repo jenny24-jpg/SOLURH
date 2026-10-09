@@ -14,14 +14,14 @@ const SELECT_BASE = `
          a.hora_entrada, a.hora_salida,
          he.horas AS horas_extra, he.tipo_hora_extra,
          he.horas_diurnas, he.horas_nocturnas,
-         e.cliente_id, c.nombre AS cliente,
+         COALESCE(a.cliente_id, e.cliente_id) AS cliente_id, c.nombre AS cliente,
          e.supervisor_id, e.supervisor_id_2,
          s.nombre AS supervisor, s2.nombre AS supervisor_2,
          a.encargado_area_id, ea.nombre AS encargado_area, ea.area AS area,
          a.estado, a.observaciones, a.jornada, a.created_at
   FROM asistencias a
   LEFT JOIN empleados e ON e.id = a.empleado_id
-  LEFT JOIN clientes c ON c.id = e.cliente_id
+  LEFT JOIN clientes c ON c.id = COALESCE(a.cliente_id, e.cliente_id)
   LEFT JOIN supervisores s ON s.id = e.supervisor_id
   LEFT JOIN supervisores s2 ON s2.id = e.supervisor_id_2
   LEFT JOIN horas_extras he ON he.empleado_id = a.empleado_id AND he.fecha = a.fecha
@@ -164,7 +164,7 @@ const listarPorEmpleado = async (req, res) => {
 };
 
 const insertar = async (req, res) => {
-  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id } = req.body;
+  const { empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id, cliente_id } = req.body;
 
   if (!empleado_id) {
     return res.status(400).json({ ok: false, mensaje: 'El empleado es requerido.' });
@@ -177,8 +177,8 @@ const insertar = async (req, res) => {
   try {
     conn = await getConnection();
     const result = await conn.query(
-      `INSERT INTO asistencias (empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, encargado_area_id, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7, NOW()) RETURNING id`,
+      `INSERT INTO asistencias (empleado_id, fecha, hora_entrada, hora_salida, estado, observaciones, encargado_area_id, cliente_id, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW()) RETURNING id`,
       [
         Number(empleado_id),
         fecha,
@@ -187,6 +187,7 @@ const insertar = async (req, res) => {
         estado || 'PRESENTE',
         observaciones || null,
         encargado_area_id || null,
+        cliente_id ? Number(cliente_id) : null,
       ]
     );
 
@@ -252,7 +253,7 @@ const marcarSalida = async (req, res) => {
 
 const actualizar = async (req, res) => {
   const { id_asistencia } = req.params;
-  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id } = req.body;
+  const { fecha, hora_entrada, hora_salida, estado, observaciones, empleado_id, horas_extra, tipo_hora_extra, horas_diurnas, horas_nocturnas, encargado_area_id, cliente_id } = req.body;
 
   if (!fecha) {
     return res.status(400).json({ ok: false, mensaje: 'La fecha es requerida.' });
@@ -276,8 +277,8 @@ const actualizar = async (req, res) => {
     }
 
     await conn.query(
-      `UPDATE asistencias SET fecha=$1, hora_entrada=$2, hora_salida=$3, estado=$4, observaciones=$5, encargado_area_id=$6 WHERE id=$7`,
-      [fecha, hora_entrada || null, hora_salida || null, estado || 'PRESENTE', observaciones || null, encargado_area_id || null, Number(id_asistencia)]
+      `UPDATE asistencias SET fecha=$1, hora_entrada=$2, hora_salida=$3, estado=$4, observaciones=$5, encargado_area_id=$6, cliente_id=$7 WHERE id=$8`,
+      [fecha, hora_entrada || null, hora_salida || null, estado || 'PRESENTE', observaciones || null, encargado_area_id || null, cliente_id ? Number(cliente_id) : null, Number(id_asistencia)]
     );
 
     await registrarAuditoria(conn, {
@@ -431,128 +432,4 @@ const eliminar = async (req, res) => {
   }
 };
 
-// ── Eliminación de varias asistencias a la vez ──────────────
-// Recibe { ids: [1, 2, 3, ...] } y borra todo en una sola transacción:
-// si algo falla, no se borra nada. Igual que "eliminar", limpia las horas
-// extra creadas automáticamente desde esas asistencias (las ingresadas a
-// mano no se tocan). Un supervisor solo puede borrar asistencias de sus
-// propios empleados, igual que en "listar".
-const MAX_ELIMINAR_VARIOS = 5000;
-
-const eliminarVarios = async (req, res) => {
-  const { ids } = req.body || {};
-
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ ok: false, mensaje: 'Debes enviar al menos un registro para eliminar.' });
-  }
-
-  const idsLimpios = [...new Set(ids.map(Number).filter(n => Number.isInteger(n) && n > 0))];
-
-  if (idsLimpios.length === 0) {
-    return res.status(400).json({ ok: false, mensaje: 'Los registros enviados no son válidos.' });
-  }
-  if (idsLimpios.length > MAX_ELIMINAR_VARIOS) {
-    return res.status(400).json({ ok: false, mensaje: `Solo se pueden eliminar hasta ${MAX_ELIMINAR_VARIOS} registros a la vez.` });
-  }
-
-  const esSupervisor = Number(req.usuario?.rol_id) === 2;
-  const supervisorIdUsuario = req.usuario?.supervisor_id;
-
-  let conn;
-  try {
-    conn = await getConnection();
-    await conn.query('BEGIN');
-
-    // 1) Borrar las asistencias (respetando el filtro de supervisor)
-    let borradas;
-    if (esSupervisor) {
-      if (!supervisorIdUsuario) {
-        await conn.query('ROLLBACK');
-        return res.status(403).json({ ok: false, mensaje: 'Tu usuario no tiene un supervisor asignado.' });
-      }
-      borradas = await conn.query(
-        `DELETE FROM asistencias a
-          USING empleados e
-          WHERE e.id = a.empleado_id
-            AND a.id = ANY($1::int[])
-            AND (e.supervisor_id = $2 OR e.supervisor_id_2 = $2)
-        RETURNING a.id, a.empleado_id, a.fecha::text AS fecha, a.encargado_area_id`,
-        [idsLimpios, Number(supervisorIdUsuario)]
-      );
-    } else {
-      borradas = await conn.query(
-        `DELETE FROM asistencias
-          WHERE id = ANY($1::int[])
-        RETURNING id, empleado_id, fecha::text AS fecha, encargado_area_id`,
-        [idsLimpios]
-      );
-    }
-
-    const filas = borradas.rows;
-
-    for (const fila of filas) {
-      await registrarAuditoria(conn, {
-        tabla: 'ASISTENCIAS',
-        operacion: 'DELETE',
-        idRegistro: fila.id,
-        descripcion: `Asistencia ${fila.id} eliminada (eliminación múltiple)`,
-        ...usuarioAuditoria(req),
-      });
-    }
-
-    // 2) Limpiar horas extra automáticas que quedaron sin asistencia
-    if (filas.length > 0) {
-      const horasBorradas = await conn.query(
-        `DELETE FROM horas_extras he
-          WHERE he.motivo = 'Registrado desde asistencia'
-            AND EXISTS (
-              SELECT 1
-                FROM unnest($1::int[], $2::date[], $3::int[]) AS b(empleado_id, fecha, area_id)
-               WHERE he.empleado_id = b.empleado_id
-                 AND he.fecha = b.fecha
-                 AND he.encargado_area_id IS NOT DISTINCT FROM b.area_id
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM asistencias a
-               WHERE a.empleado_id = he.empleado_id
-                 AND a.fecha = he.fecha
-                 AND a.encargado_area_id IS NOT DISTINCT FROM he.encargado_area_id
-            )
-        RETURNING he.id, he.empleado_id, he.fecha::text AS fecha`,
-        [
-          filas.map(f => f.empleado_id),
-          filas.map(f => f.fecha),
-          filas.map(f => (f.encargado_area_id === null ? null : Number(f.encargado_area_id))),
-        ]
-      );
-
-      for (const fila of horasBorradas.rows) {
-        await registrarAuditoria(conn, {
-          tabla: 'HORAS_EXTRAS',
-          operacion: 'DELETE',
-          idRegistro: fila.id,
-          descripcion: `Horas extra eliminadas junto con asistencias (empleado ${fila.empleado_id}, ${fila.fecha})`,
-          ...usuarioAuditoria(req),
-        });
-      }
-    }
-
-    await conn.query('COMMIT');
-
-    const noEncontradas = idsLimpios.length - filas.length;
-    const mensaje = noEncontradas > 0
-      ? `Se eliminaron ${filas.length} asistencias. ${noEncontradas} no se encontraron o no tienes permiso para eliminarlas.`
-      : `Se eliminaron ${filas.length} asistencias correctamente.`;
-
-    res.status(200).json({ ok: true, mensaje, data: { eliminadas: filas.length, noEncontradas } });
-  } catch (err) {
-    if (conn) {
-      try { await conn.query('ROLLBACK'); } catch (_) { /* ignorar */ }
-    }
-    res.status(500).json({ ok: false, mensaje: err.message });
-  } finally {
-    await closeConnection(conn);
-  }
-};
-
-module.exports = { listar, obtenerPorId, listarPorEmpleado, insertar, marcarSalida, actualizar, eliminar, eliminarVarios };
+module.exports = { listar, obtenerPorId, listarPorEmpleado, insertar, marcarSalida, actualizar, eliminar };
